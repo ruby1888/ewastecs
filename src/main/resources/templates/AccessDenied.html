@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Access Denied — E-Waste Recycling Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/ewaste.css}"/>
+<script src="/js/loader.js" defer></script>
+</head>
+<body>
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="loader-logo"><div class="loader-logo-dot"></div> E-Waste Recycling Manager</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">Loading…</div>
+</div>
+
+<div style="min-height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:1.5rem; text-align:center; padding:2rem;">
+  <div style="font-size:4rem;">🔒</div>
+  <h1 class="font-head" style="font-size:2rem; font-weight:800; color:var(--text);">Access Denied</h1>
+  <p class="text-muted" style="max-width:400px;">You don't have permission to view this page. Please sign in with the correct account.</p>
+  <div style="display:flex; gap:1rem; flex-wrap:wrap; justify-content:center;">
+    <a href="/" class="btn btn-primary">Go home</a>
+    <a href="/client/login" class="btn btn-outline">Sign in</a>
+  </div>
+</div>
+
+</body>
+</html>

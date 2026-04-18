@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — E-Waste Recycling Manager Client</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/ewaste.css}"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:var(--radius-xl);
+      padding:2rem;max-width:580px;width:92%;max-height:90vh;overflow-y:auto;animation:fadeUp .25s ease;}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;}
+    .detail-row{display:flex;flex-direction:column;gap:.25rem;margin-bottom:1rem;}
+    .detail-label{font-size:.72rem;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;}
+    .detail-value{font-size:.9rem;color:var(--text);font-weight:500;}
+    /* 720p image */
+    .img-720p{width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:var(--radius);
+              border:1px solid var(--border);background:var(--bg-raised);margin-bottom:1.25rem;}
+    .img-720p img{width:100%;height:100%;object-fit:contain;}
+    /* Offer cards */
+    .offer-card{background:var(--bg-raised);border:1px solid var(--border-bright);border-radius:var(--radius);
+      padding:1rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;}
+    .agent-offers-section{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);
+      border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1.5rem;}
+    /* Tracking timeline */
+    .track-step{display:flex;gap:.75rem;align-items:flex-start;padding:.5rem 0;position:relative;}
+    .track-step:not(:last-child)::after{content:'';position:absolute;left:9px;top:22px;
+      bottom:-4px;width:2px;background:var(--border);}
+    .track-dot{width:18px;height:18px;border-radius:50%;flex-shrink:0;border:2px solid var(--border);
+      background:var(--bg-raised);display:flex;align-items:center;justify-content:center;font-size:.55rem;}
+    .track-dot.done{background:var(--green);border-color:var(--green);color:#fff;}
+    .track-dot.active{background:#dbeafe;border-color:#3b82f6;}
+    .track-label{font-size:.875rem;font-weight:600;}
+    .track-sub{font-size:.75rem;color:var(--text-muted);}
+  </style>
+<script src="/js/loader.js" defer></script>
+</head>
+<body>
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="loader-logo"><div class="loader-logo-dot"></div> E-Waste Recycling Manager</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">Loading…</div>
+</div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><span class="sidebar-logo-dot"></span> E-Waste Recycling Manager</div>
+      <div class="sidebar-role">Client Portal</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Menu</div>
+      <a href="/client/dashboard" class="active">&#9632; Dashboard</a>
+      <a href="/client/add-ewaste">&#43; New request</a>
+      <a href="/client/my-certificates">&#128196; Certificates</a>
+      <div class="sidebar-section-label">Account</div>
+      <a href="/client/profile">&#9737; Profile</a>
+      <a href="/client/change-password">&#128274; Change password</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/logout" class="btn btn-sm btn-block" style="background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.3);justify-content:flex-start;">&#8594; Sign out</a>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="page-header">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div class="page-title" th:text="'Welcome, ' + ${client.name}">Dashboard</div>
+          <div class="page-subtitle">Your pickup requests and activity</div>
+        </div>
+        <!-- Notification Bell -->
+        <div class="notif-wrap" id="notifWrap">
+          <button class="notif-btn" onclick="toggleNotif()" title="Notifications">
+            &#128276;
+            <span th:if="${!#lists.isEmpty(notifications)}" class="notif-badge"
+                  th:text="${notifications.size()}">0</span>
+          </button>
+          <div class="notif-dropdown" id="notifDropdown">
+            <div class="notif-dropdown-header" style="display:flex;justify-content:space-between;align-items:center;">
+              <span>Notifications</span>
+              <form th:unless="${#lists.isEmpty(notifications)}"
+                    th:action="@{/client/notifications/clear}" method="post" style="margin:0;">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-sm"
+                        style="font-size:.7rem;padding:2px 8px;background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.3);">&#10005; Clear all</button>
+              </form>
+            </div>
+            <div th:if="${#lists.isEmpty(notifications)}" class="notif-empty">All caught up!</div>
+            <div th:each="n : ${notifications}" class="notif-item" th:classappend="${!n.read} ? ' unread' : ''">
+              <div th:text="${n.message}">msg</div>
+              <div class="notif-time" th:text="${#temporals.format(n.createdAt,'dd MMM, HH:mm')}"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-area">
+      <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+      <!-- Stat cards -->
+      <div class="grid grid-4 stagger mb-3">
+        <div class="stat-card"><div class="stat-icon blue">&#128203;</div><div><div class="stat-value" th:text="${totalRequests}">0</div><div class="stat-label">Total requests</div></div></div>
+        <div class="stat-card"><div class="stat-icon yellow">&#9711;</div><div><div class="stat-value" th:text="${pendingCount}">0</div><div class="stat-label">Pending</div></div></div>
+        <div class="stat-card"><div class="stat-icon blue">&#128230;</div><div><div class="stat-value" th:text="${assignedCount}">0</div><div class="stat-label">Assigned</div></div></div>
+        <div class="stat-card"><div class="stat-icon green">&#10003;</div><div><div class="stat-value" th:text="${completedCount}">0</div><div class="stat-label">Completed</div></div></div>
+      </div>
+
+      <!-- Charts: doughnut + bar -->
+      <div th:if="${totalRequests > 0}" class="mb-3">
+        <div class="grid grid-2" style="gap:1.25rem;">
+          <div class="card">
+            <div class="card-header"><span class="card-title">📊 Status breakdown</span></div>
+            <div class="card-body"><div style="height:180px;"><canvas id="myChart"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">📈 Request overview</span></div>
+            <div class="card-body"><div style="height:180px;"><canvas id="myChartBar"></canvas></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════ AGENT OFFERS PANEL ══════ -->
+      <div th:unless="${offersMap == null or offersMap.empty}" class="agent-offers-section mb-3">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;">
+          <span style="font-size:1.1rem;">&#128276;</span>
+          <span class="font-head font-bold" style="font-size:1rem;">Agents have made offers on your requests</span>
+        </div>
+        <div th:each="entry : ${offersMap}" style="margin-bottom:1.25rem;">
+          <!-- Find the matching request -->
+          <div th:each="r : ${requests}" th:if="${r.id == entry.key}">
+            <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:.6rem;font-weight:600;"
+                 th:text="'Offers for: ' + ${r.ewaste.name} + ' (' + ${r.quantity} + ' unit(s))'"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.6rem;">
+            <div class="offer-card" th:each="offer : ${entry.value}">
+              <div>
+                <div class="font-bold text-sm" th:text="${offer.agent.name}"></div>
+                <div class="text-xs text-muted" th:if="${offer.agent.city != null}" th:text="${offer.agent.city.name}"></div>
+                <div class="text-xs" style="margin-top:4px;">
+                  <span th:if="${offer.freeCollection}" class="badge badge-green" style="font-size:.7rem;">Free collection</span>
+                  <span th:unless="${offer.freeCollection}" style="color:var(--teal);font-weight:600;"
+                        th:text="${offer.offeredPrice != null ? '₹' + offer.offeredPrice + ' / item' : 'Price TBD'}"></span>
+                </div>
+                <div class="text-xs text-muted" th:if="${offer.remarks != null and !offer.remarks.isEmpty()}"
+                     th:text="${offer.remarks}" style="margin-top:4px;font-style:italic;"></div>
+              </div>
+              <form th:action="@{'/client/accept-offer/' + ${offer.id}}" method="post" style="flex-shrink:0;">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-primary btn-sm">&#10003; Accept</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Requests table -->
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="font-head" style="font-size:1.05rem;font-weight:700;">My pickup requests</h2>
+        <a href="/client/add-ewaste" class="btn btn-primary btn-sm">&#43; New request</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Item</th><th>Qty</th><th>Address</th><th>Requested</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            <tr th:if="${#lists.isEmpty(requests)}">
+              <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-faint);">
+                No requests yet. <a href="/client/add-ewaste">Submit your first pickup →</a>
+              </td>
+            </tr>
+            <tr th:each="r, i : ${requests}">
+              <td class="text-muted text-sm" th:text="${i.count}"></td>
+              <td class="font-bold" th:text="${r.ewaste.name}"></td>
+              <td th:text="${r.quantity} + ' unit(s)'"></td>
+              <td class="text-sm text-muted" style="max-width:140px;" th:text="${r.pickupAddress}"></td>
+              <td class="text-sm text-muted" th:text="${#temporals.format(r.requestedAt,'dd MMM yyyy')}"></td>
+              <td>
+                <span th:switch="${r.status}">
+                  <span th:case="'PENDING'"   class="badge badge-yellow">Pending</span>
+                  <span th:case="'ASSIGNED'"  class="badge badge-blue">Assigned</span>
+                  <span th:case="'COMPLETED'" class="badge badge-green">Completed</span>
+                  <span th:case="'CANCELLED'" class="badge badge-red">Cancelled</span>
+                  <span th:case="*" class="badge badge-muted" th:text="${r.status}"></span>
+                </span>
+              </td>
+              <td>
+                <div class="action-group">
+                  <!-- Collect all assignment data for the modal -->
+                  <th:block th:with="asgn=${assignmentMap[r.id]}">
+                    <button class="btn btn-outline btn-sm" onclick="openViewFromData(this)"
+                            th:data-id="${r.id}"
+                            th:data-item="${r.ewaste.name}"
+                            th:data-qty="${r.quantity}"
+                            th:data-status="${r.status}"
+                            th:data-address="${r.pickupAddress}"
+                            th:data-desc="${r.itemDescription != null ? r.itemDescription : ''}"
+                            th:data-img="${r.itemImagePath != null ? r.itemImagePath : ''}"
+                            th:data-date="${#temporals.format(r.requestedAt,'dd MMM yyyy')}"
+                            th:data-has-agent="${asgn != null}"
+                            th:data-agent-name="${asgn != null ? asgn.agent.name : ''}"
+                            th:data-agent-mobile="${asgn != null ? (asgn.agent.mobile != null ? asgn.agent.mobile : '') : ''}"
+                            th:data-pickup-date="${asgn != null and asgn.pickupDate != null ? #temporals.format(asgn.pickupDate,'dd MMM yyyy') : ''}"
+                            th:data-offered-price="${asgn != null and asgn.offeredPrice != null ? asgn.offeredPrice : ''}"
+                            th:data-free="${asgn != null ? asgn.freeCollection : false}"
+                            th:data-receiver="${asgn != null and asgn.receiverName != null ? asgn.receiverName : ''}"
+                            th:data-receiver-contact="${asgn != null and asgn.receiverContact != null ? asgn.receiverContact : ''}"
+                            th:data-collected="${asgn != null and asgn.collectedAt != null ? #temporals.format(asgn.collectedAt,'dd MMM yyyy HH:mm') : ''}"
+                            th:data-agent-remarks="${asgn != null and asgn.remarks != null ? asgn.remarks : ''}">
+                      View
+                    </button>
+                  </th:block>
+                  <a th:if="${r.status == 'COMPLETED'}"
+                     th:href="@{'/client/certificate/' + ${r.id}}"
+                     class="btn btn-primary btn-sm">Certificate &#8599;</a>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View modal -->
+<div class="modal-overlay" id="viewModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="font-head font-bold" style="font-size:1.05rem;">Pickup details</span>
+      <button onclick="closeView()" style="background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer;">&#10005;</button>
+    </div>
+
+    <!-- 720p image -->
+    <div id="imgWrap" class="img-720p" style="display:none;">
+      <img id="modalItemImg" src="" alt="Item photo" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.style.display='none'"/>
+    </div>
+    <div id="removeImgWrap" style="display:none;text-align:right;margin-top:-1rem;margin-bottom:1rem;">
+      <form id="removeImgForm" method="post">
+        <input type="hidden" name="_csrf" th:value="${_csrf.token}"/>
+        <button type="submit" class="btn btn-sm"
+                style="font-size:.72rem;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(248,113,113,.3);">
+          &#10005; Remove photo
+        </button>
+      </form>
+    </div>
+
+    <!-- Basic details -->
+    <div class="grid grid-2" style="gap:.75rem;margin-bottom:1rem;">
+      <div class="detail-row"><div class="detail-label">Item</div><div class="detail-value" id="mv-item"></div></div>
+      <div class="detail-row"><div class="detail-label">Quantity</div><div class="detail-value" id="mv-qty"></div></div>
+      <div class="detail-row"><div class="detail-label">Status</div><div class="detail-value" id="mv-status"></div></div>
+      <div class="detail-row"><div class="detail-label">Requested</div><div class="detail-value" id="mv-date"></div></div>
+    </div>
+    <div class="detail-row" style="margin-bottom:.75rem;">
+      <div class="detail-label">Pickup address</div><div class="detail-value" id="mv-address"></div>
+    </div>
+    <div class="detail-row" style="margin-bottom:1.25rem;">
+      <div class="detail-label">Your item description</div><div class="detail-value" id="mv-desc"></div>
+    </div>
+
+    <!-- Tracking timeline -->
+    <div style="border:1px solid var(--border);border-radius:var(--radius);padding:1rem;">
+      <div style="font-size:.72rem;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem;">Tracking</div>
+      <div class="track-step">
+        <div class="track-dot done">&#10003;</div>
+        <div><div class="track-label">Request submitted</div><div class="track-sub" id="trk-submitted"></div></div>
+      </div>
+      <div class="track-step" id="trk-agent-row" style="display:none;">
+        <div class="track-dot done">&#10003;</div>
+        <div>
+          <div class="track-label">Agent assigned</div>
+          <div class="track-sub" id="trk-agent"></div>
+          <div class="track-sub" id="trk-agent-mobile" style="margin-top:2px;"></div>
+        </div>
+      </div>
+      <div class="track-step" id="trk-pickup-row" style="display:none;">
+        <div class="track-dot active">&#9679;</div>
+        <div>
+          <div class="track-label">Pickup scheduled</div>
+          <div class="track-sub" id="trk-pickup-date"></div>
+        </div>
+      </div>
+      <div class="track-step" id="trk-collected-row" style="display:none;">
+        <div class="track-dot done">&#10003;</div>
+        <div>
+          <div class="track-label">Collected</div>
+          <div class="track-sub" id="trk-collected"></div>
+        </div>
+      </div>
+      <div class="track-step" id="trk-pending-row">
+        <div class="track-dot">&#183;</div>
+        <div><div class="track-label" style="color:var(--text-muted);" id="trk-pending-label">Awaiting agent</div></div>
+      </div>
+    </div>
+
+    <!-- Agent details (if ASSIGNED+) -->
+    <div id="agentDetailsSection" style="display:none;margin-top:1rem;background:var(--bg-raised);border-radius:var(--radius);padding:1.1rem;">
+      <div style="font-size:.72rem;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.85rem;">📋 Agent details &amp; pickup info</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;">
+        <div class="detail-row" style="margin:0;"><div class="detail-label">Offered price</div><div class="detail-value" id="ad-price"></div></div>
+        <div class="detail-row" style="margin:0;" id="ad-scheduled-row">
+          <div class="detail-label">Scheduled pickup date</div>
+          <div class="detail-value" id="ad-scheduled-date">—</div>
+        </div>
+        <div class="detail-row" style="margin:0;" id="ad-receiver-row">
+          <div class="detail-label">Receiver name</div>
+          <div class="detail-value" id="ad-receiver"></div>
+        </div>
+        <div class="detail-row" style="margin:0;" id="ad-contact-row">
+          <div class="detail-label">Receiver contact</div>
+          <div class="detail-value" id="ad-contact"></div>
+        </div>
+      </div>
+      <div class="detail-row" style="margin:.65rem 0 0;" id="ad-remarks-row">
+        <div class="detail-label">Agent's note / description</div>
+        <div class="detail-value" id="ad-remarks" style="white-space:pre-line;font-size:.88rem;"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script th:inline="javascript">
+// Notification toggle
+function toggleNotif() { document.getElementById('notifDropdown').classList.toggle('open'); }
+document.addEventListener('click', function(e) {
+  var w = document.getElementById('notifWrap');
+  if (w && !w.contains(e.target)) document.getElementById('notifDropdown').classList.remove('open');
+});
+
+// View modal
+function openViewFromData(btn) {
+  var d = btn.dataset;
+  document.getElementById('mv-item').textContent    = d.item || '';
+  document.getElementById('mv-qty').textContent     = (d.qty || '0') + ' unit(s)';
+  document.getElementById('mv-status').textContent  = d.status || '';
+  document.getElementById('mv-date').textContent    = d.date || '';
+  document.getElementById('mv-address').textContent = d.address || '';
+  document.getElementById('mv-desc').textContent    = d.desc || '—';
+
+  // Image (720p)
+  var imgWrap = document.getElementById('imgWrap');
+  var removeWrap = document.getElementById('removeImgWrap');
+  var img = document.getElementById('modalItemImg');
+  if (d.img && d.img !== '') {
+    img.onerror = function() { imgWrap.style.display = 'none'; removeWrap.style.display = 'none'; };
+    img.src = '/uploads/ewastes/' + d.img;
+    imgWrap.style.display = 'block';
+    removeWrap.style.display = 'block';
+    document.getElementById('removeImgForm').action = '/client/add-ewaste/remove-image/' + d.id;
+  } else {
+    imgWrap.style.display = 'none';
+    removeWrap.style.display = 'none';
+  }
+
+  // Tracking
+  document.getElementById('trk-submitted').textContent = d.date || '';
+  var hasAgent = d.hasAgent === 'true';
+  var agentRow = document.getElementById('trk-agent-row');
+  var pickupRow = document.getElementById('trk-pickup-row');
+  var collectedRow = document.getElementById('trk-collected-row');
+  var pendingRow = document.getElementById('trk-pending-row');
+
+  if (hasAgent) {
+    agentRow.style.display = 'flex';
+    document.getElementById('trk-agent').textContent = d.agentName || '';
+    document.getElementById('trk-agent-mobile').textContent = d.agentMobile ? '📞 ' + d.agentMobile : '';
+    pendingRow.style.display = 'none';
+  } else {
+    agentRow.style.display = 'none';
+    pendingRow.style.display = 'flex';
+    document.getElementById('trk-pending-label').textContent =
+      d.status === 'PENDING' ? 'Awaiting agent assignment' : 'In progress';
+  }
+
+  if (d.pickupDate && d.pickupDate !== '') {
+    pickupRow.style.display = 'flex';
+    document.getElementById('trk-pickup-date').textContent = d.pickupDate;
+  } else { pickupRow.style.display = 'none'; }
+
+  if (d.collected && d.collected !== '') {
+    collectedRow.style.display = 'flex';
+    document.getElementById('trk-collected').textContent = d.collected;
+  } else { collectedRow.style.display = 'none'; }
+
+  // Agent details section
+  var adSec = document.getElementById('agentDetailsSection');
+  if (hasAgent) {
+    adSec.style.display = 'block';
+
+    // Offered price
+    var priceEl = document.getElementById('ad-price');
+    if (d.free === 'true') {
+      priceEl.textContent = 'Free collection';
+    } else if (d.offeredPrice && d.offeredPrice !== '') {
+      priceEl.textContent = '₹' + d.offeredPrice + ' / item';
+    } else {
+      priceEl.textContent = '—';
+    }
+
+    // Scheduled pickup date
+    var schedRow = document.getElementById('ad-scheduled-row');
+    var schedEl  = document.getElementById('ad-scheduled-date');
+    if (d.pickupDate && d.pickupDate !== '') {
+      schedEl.textContent = d.pickupDate;
+      schedEl.style.color = 'var(--green)';
+      schedEl.style.fontWeight = '700';
+      schedRow.style.display = '';
+    } else {
+      schedEl.textContent = 'Not scheduled yet';
+      schedEl.style.color = 'var(--text-faint)';
+      schedEl.style.fontWeight = '400';
+      schedRow.style.display = '';
+    }
+
+    // Receiver name
+    var recRow = document.getElementById('ad-receiver-row');
+    var recEl  = document.getElementById('ad-receiver');
+    if (d.receiver && d.receiver !== '') {
+      recEl.textContent = d.receiver;
+      recRow.style.display = '';
+    } else {
+      recEl.textContent = '—';
+      recRow.style.display = '';
+    }
+
+    // Receiver contact
+    var conRow = document.getElementById('ad-contact-row');
+    var conEl  = document.getElementById('ad-contact');
+    if (d.receiverContact && d.receiverContact !== '') {
+      conEl.textContent = d.receiverContact;
+      conRow.style.display = '';
+    } else {
+      conEl.textContent = '—';
+      conRow.style.display = '';
+    }
+
+    // Agent remarks / description
+    var rmkRow = document.getElementById('ad-remarks-row');
+    var rmkEl  = document.getElementById('ad-remarks');
+    if (d.agentRemarks && d.agentRemarks !== '') {
+      rmkEl.textContent = d.agentRemarks;
+      rmkRow.style.display = '';
+    } else {
+      rmkRow.style.display = 'none';
+    }
+
+  } else { adSec.style.display = 'none'; }
+
+  document.getElementById('viewModal').classList.add('open');
+}
+
+function closeView() { document.getElementById('viewModal').classList.remove('open'); }
+document.getElementById('viewModal').addEventListener('click', function(e) {
+  if (e.target === this) closeView();
+});
+
+// Chart
+const chartData = /*[[${chartData}]]*/ '[0,0,0,0]';
+const cd = JSON.parse(chartData);
+if (cd.reduce(function(a,b){return a+b;},0) > 0) {
+  new Chart(document.getElementById('myChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Pending','Assigned','Completed','Cancelled'],
+      datasets: [{
+        data: cd,
+        backgroundColor: ['rgba(180,83,9,.75)','rgba(29,78,216,.75)','rgba(58,107,74,.8)','rgba(185,28,28,.75)'],
+        borderColor: ['#fff','#fff','#fff','#fff'],
+        borderWidth: 2, hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '62%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#5a5a52', font: { size: 12 }, padding: 14, usePointStyle: true }
+        }
+      }
+    }
+  });
+
+  if (document.getElementById('myChartBar')) {
+    new Chart(document.getElementById('myChartBar'), {
+      type: 'bar',
+      data: {
+        labels: ['Pending','Assigned','Completed','Cancelled'],
+        datasets: [{
+          data: cd,
+          backgroundColor: ['rgba(180,83,9,.7)','rgba(29,78,216,.7)','rgba(58,107,74,.75)','rgba(185,28,28,.7)'],
+          borderColor: ['#b45309','#1d4ed8','#3a6b4a','#b91c1c'],
+          borderWidth: 1.5, borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          x: { grid: { color: 'rgba(0,0,0,.06)' }, ticks: { color: '#5a5a52', font: { size: 10 } } },
+          y: { grid: { color: 'rgba(0,0,0,.06)' }, ticks: { color: '#5a5a52', precision: 0 }, beginAtZero: true }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+}
+</script>
+
+</body>
+</html>

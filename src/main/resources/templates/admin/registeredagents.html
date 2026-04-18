@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Registered Agents — E-Waste Recycling Management Network — Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/ewaste.css}"/>
+<script src="/js/loader.js" defer></script>
+</head>
+<body>
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="loader-logo"><div class="loader-logo-dot"></div> E-Waste Recycling Manager</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">Loading…</div>
+</div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><span class="sidebar-logo-dot"></span> E-Waste Recycling Manager</div>
+      <div class="sidebar-role">Admin Portal</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Overview</div>
+      <a href="/admin/dashboard">&#9632; Dashboard</a>
+      <div class="sidebar-section-label">Management</div>
+      <a href="/admin/states">&#127759; States</a>
+      <a href="/admin/cities">&#127960; Cities</a>
+      <a href="/admin/ewaste-master">&#9855; E-Waste master</a>
+      <div class="sidebar-section-label">Users</div>
+      <a href="/admin/clients">&#128100; Clients</a>
+      <a href="/admin/agents" class="active">&#128101; Agents</a>
+      <div class="sidebar-section-label">Operations</div>
+      <a href="/admin/pickups">&#128230; Pickup requests</a>
+      <a href="/admin/contacts">&#128140; Contact messages</a>
+      <div class="sidebar-section-label">Account</div>
+      <a href="/admin/change-password">&#128274; Change password</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/logout" class="btn btn-danger btn-sm btn-block" style="justify-content:flex-start;">&#8594; Sign out</a>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="page-header">
+      <div class="page-title">Registered Agents</div>
+      <div class="page-subtitle">Approve, verify licenses and manage collectors</div>
+    </div>
+    <div class="content-area">
+      <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+      <div th:if="${pendingAgentCount > 0}"
+           style="background:linear-gradient(135deg,#fff7ed 0%,#fffbeb 100%);
+                  border:2px solid #f59e0b;border-radius:16px;padding:1.25rem 1.5rem;
+                  margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;">
+        <span style="font-size:1.5rem;">🪪</span>
+        <div>
+          <div style="font-weight:700;color:#92400e;" th:text="${pendingAgentCount} + ' agent application(s) awaiting your review'"></div>
+          <div style="font-size:.85rem;color:#b45309;margin-top:2px;">Review their license numbers below and approve to activate their accounts.</div>
+        </div>
+      </div>
+
+      <div th:if="${pendingAgentCount == 0 and false}" class="alert alert-warn">
+        <span th:text="${pendingAgentCount} + ' agent(s) awaiting approval'"></span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Name</th><th>Email</th><th>City</th>
+              <th>License no.</th><th>License</th><th>Account</th><th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:if="${#lists.isEmpty(agents)}">
+              <td colspan="8" style="text-align:center;padding:2rem;color:var(--text-faint);">No agents yet.</td>
+            </tr>
+            <tr th:each="a, i : ${agents}">
+              <td class="text-muted text-sm" th:text="${i.count}"></td>
+              <td>
+                <div class="font-bold text-sm" th:text="${a.name}"></div>
+                <div class="text-xs text-muted" th:text="${a.mobile}"></div>
+              </td>
+              <td class="text-sm" th:text="${a.email}"></td>
+              <td class="text-sm" th:text="${a.city?.name}"></td>
+              <td class="text-sm text-muted"
+                  th:text="${a.licenseNumber != null and !a.licenseNumber.isEmpty()} ? ${a.licenseNumber} : '—'"></td>
+              <td>
+                <span th:if="${a.licenseVerified}"  class="badge badge-green">Verified</span>
+                <span th:unless="${a.licenseVerified and a.licenseNumber != null and !a.licenseNumber.isEmpty()}"
+                      class="badge badge-muted">Unverified</span>
+              </td>
+              <td>
+                <span th:if="${a.active}"  class="badge badge-green">Active</span>
+                <span th:unless="${a.active}" class="badge badge-yellow" style="animation:pulse 2s infinite;">⏳ Pending</span>
+              </td>
+              <td>
+                <div class="action-group" style="justify-content:flex-end;">
+                  <a th:href="@{'/admin/agents/profile/' + ${a.id}}" class="btn btn-outline btn-sm">Profile</a>
+                  <a th:if="${!a.active}" th:href="@{'/admin/agents/approve/' + ${a.id}}"
+                     class="btn btn-primary btn-sm">Approve</a>
+                  <a th:if="${a.active}"  th:href="@{'/admin/agents/revoke/' + ${a.id}}"
+                     class="btn btn-warn btn-sm">Revoke</a>
+                  <a th:if="${a.licenseNumber != null and !a.licenseNumber.isEmpty() and !a.licenseVerified}"
+                     th:href="@{'/admin/agents/verify-license/' + ${a.id}}"
+                     class="btn btn-outline btn-sm">Verify license</a>
+                  <a th:href="@{'/admin/agents/delete/' + ${a.id}}"
+                     class="btn btn-danger btn-sm"
+                     onclick="return confirm('Delete this agent permanently?')">Delete</a>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

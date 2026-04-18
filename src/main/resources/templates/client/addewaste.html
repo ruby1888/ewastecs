@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>New Pickup — E-Waste Recycling Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/ewaste.css}"/>
+<script src="/js/loader.js" defer></script>
+</head>
+<body>
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="loader-logo"><div class="loader-logo-dot"></div> E-Waste Recycling Manager</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">Loading…</div>
+</div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><span class="sidebar-logo-dot"></span> E-Waste Recycling Manager</div>
+      <div class="sidebar-role">Client Portal</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Menu</div>
+      <a href="/client/dashboard">&#9632; Dashboard</a>
+      <a href="/client/add-ewaste" class="active">&#43; New pickup request</a>
+      <a href="/client/my-certificates">&#128196; My certificates</a>
+      <div class="sidebar-section-label">Account</div>
+      <a href="/client/profile">&#9737; Profile</a>
+      <a href="/client/change-password">&#128274; Change password</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/logout" class="btn btn-danger btn-sm btn-block" style="justify-content:flex-start; background:rgba(248,113,113,.15); color:#f87171; border:1px solid rgba(248,113,113,.3);">&#8594; Sign out</a>
+    </div>
+  </aside>
+  <div class="main-content">
+    <div class="page-header">
+      <div class="page-title">New Pickup Request</div>
+      <div class="page-subtitle">Tell us what you want to recycle</div>
+    </div>
+    <div class="content-area">
+      <div class="grid grid-2" style="gap:1.5rem; align-items:start;">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Pickup details</span></div>
+          <div class="card-body">
+            <form th:action="@{/client/add-ewaste/save}" method="post" enctype="multipart/form-data">
+
+              <div class="form-group">
+                <label class="form-label">E-Waste item type</label>
+                <select name="ewasteId" class="form-control" required>
+                  <option value="">— Select what you want to dispose —</option>
+                  <option th:each="e : ${ewastes}" th:value="${e.id}"
+                          th:text="${e.name} + (${e.category != null} ? ' · ' + ${e.category.name} : '')"></option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Quantity (number of units)</label>
+                <input type="number" name="quantity" class="form-control"
+                       placeholder="e.g. 2" min="1" step="1" required/>
+                <div class="location-hint">Enter count of individual items, not weight.</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Product description <span class="text-faint">(optional)</span></label>
+                <textarea name="itemDescription" class="form-control" rows="3"
+                          placeholder="Brand, model, condition, any damage — e.g. Samsung Galaxy S10, cracked screen"></textarea>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Product photo <span class="text-faint">(optional)</span></label>
+                <input type="file" name="itemImage" class="form-control"
+                       accept="image/*" onchange="previewItemImage(this)"/>
+                <div class="location-hint">Upload a photo of your item to help the agent identify it.</div>
+                <img id="itemPreview" src="#" alt="Preview"
+                     style="display:none;margin-top:10px;max-height:120px;border-radius:8px;
+                            border:1px solid var(--border);"/>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Pickup location</label>
+                <div class="state-city-row">
+                  <select id="stateSelect" class="form-control" onchange="loadCities(this.value)">
+                    <option value="">— State —</option>
+                    <option th:each="s : ${states}" th:value="${s.id}" th:text="${s.name}"></option>
+                  </select>
+                  <select id="citySelect" class="form-control" disabled>
+                    <option value="">— City —</option>
+                  </select>
+                </div>
+                <div class="location-hint mt-1">Select state first — cities will load automatically.</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Full pickup address</label>
+                <textarea name="pickupAddress" class="form-control" rows="3"
+                          placeholder="Door no., street, landmark, area, PIN code" required></textarea>
+              </div>
+
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+              <div class="flex gap-1">
+                <div class="form-group">
+              <label class="form-label">Preferred pickup date (optional)</label>
+              <input type="date" name="preferredDate" class="form-control" id="preferred-date"/>
+              <div style="font-size:.78rem;color:var(--text-faint);margin-top:4px;">Select a date from today onwards</div>
+            </div>
+            <div style="display:flex;gap:.75rem;align-items:center;margin-top:1.5rem;">
+              <button type="submit" class="btn btn-primary" style="flex:1;">&#9654; Submit request</button>
+              <a href="/client/dashboard" class="btn btn-outline">Cancel</a>
+            </div>
+            </div>
+            </form>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:1rem;">
+          <div class="feature-card">
+            <div class="feature-icon">&#128230;</div>
+            <div class="feature-title">What happens next?</div>
+            <div class="feature-desc">Admin assigns a verified agent in your city. You'll be notified immediately when assigned.</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">&#128196;</div>
+            <div class="feature-title">Get your certificate</div>
+            <div class="feature-desc">Once collected, your recycling certificate is instantly available in your dashboard.</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">&#128276;</div>
+            <div class="feature-title">Live notifications</div>
+            <div class="feature-desc">Track every status change — submission, assignment, and collection — via your notification bell.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// City cascade — fix: correct API call with stateId
+function loadCities(stateId) {
+  const citySelect = document.getElementById('citySelect');
+  citySelect.disabled = true;
+  citySelect.innerHTML = '<option value="">Loading cities...</option>';
+  if (!stateId) { citySelect.innerHTML = '<option value="">— City —</option>'; return; }
+  fetch('/api/cities?stateId=' + stateId)
+    .then(function(r) {
+      if (!r.ok) throw new Error('Network error');
+      return r.json();
+    })
+    .then(function(cities) {
+      citySelect.innerHTML = '<option value="">— Select city —</option>';
+      if (cities.length === 0) {
+        citySelect.innerHTML = '<option value="">No cities for this state</option>';
+      } else {
+        cities.forEach(function(c) {
+          var opt = document.createElement('option');
+          opt.value = c.id; opt.textContent = c.name;
+          citySelect.appendChild(opt);
+        });
+        citySelect.disabled = false;
+      }
+    })
+    .catch(function(e) {
+      citySelect.innerHTML = '<option value="">Error loading cities</option>';
+      console.error('City load error:', e);
+    });
+}
+// Item image preview
+function previewItemImage(input) {
+  var preview = document.getElementById('itemPreview');
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) { preview.src = e.target.result; preview.style.display = 'block'; };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+</script>
+
+
+<script>
+// ── Date validation: all date inputs must be today or future ─────────────
+(function() {
+  function setMinDate(inputId) {
+    var el = document.getElementById(inputId);
+    if (!el) el = document.querySelector('input[name="' + inputId + '"]');
+    if (!el && inputId.startsWith('#')) el = document.querySelector(inputId);
+    if (el && el.type === 'date') {
+      var today = new Date();
+      today.setHours(0, 0, 0, 0);
+      el.min = today.toISOString().split('T')[0];
+      el.max = new Date(today.getFullYear() + 2, today.getMonth(), today.getDate())
+                 .toISOString().split('T')[0];
+      el.addEventListener('change', function() {
+        var chosen = new Date(el.value);
+        if (chosen < today) {
+          el.setCustomValidity('Please select today or a future date.');
+          el.reportValidity();
+          el.value = '';
+        } else {
+          el.setCustomValidity('');
+        }
+      });
+    }
+  }
+  document.querySelectorAll('input[type="date"]').forEach(function(el) {
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    el.min = today.toISOString().split('T')[0];
+    el.max = new Date(today.getFullYear() + 2, today.getMonth(), today.getDate())
+               .toISOString().split('T')[0];
+    el.addEventListener('change', function() {
+      var chosen = new Date(el.value);
+      if (chosen < today) {
+        el.setCustomValidity('Please choose today or a future date.');
+        el.reportValidity();
+        el.value = '';
+      } else { el.setCustomValidity(''); }
+    });
+  });
+})();
+</script>
+</body>
+</html>

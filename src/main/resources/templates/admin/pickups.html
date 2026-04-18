@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pickup Requests — E-Waste Recycling Manager Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/ewaste.css}"/>
+  <style>
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400;align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:var(--radius-xl);
+      padding:2rem;max-width:600px;width:94%;max-height:92vh;overflow-y:auto;animation:fadeUp .25s ease;}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;}
+    .detail-row{margin-bottom:.9rem;}
+    .detail-label{font-size:.72rem;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+    .detail-value{font-size:.92rem;color:var(--text);font-weight:500;}
+    /* city filter bar */
+    .filter-bar{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-bottom:1.25rem;
+      padding:1rem 1.25rem;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);}
+    .filter-bar label{font-size:.78rem;font-weight:600;color:var(--text-muted);white-space:nowrap;}
+    .filter-bar select{background:var(--bg-raised);color:var(--text);border:1px solid var(--border);
+      border-radius:var(--radius);padding:7px 12px;font-size:.88rem;min-width:160px;}
+    /* multi-select agent box */
+    select[multiple]{background:var(--bg-raised);color:var(--text);border:1px solid var(--border-bright);
+      border-radius:var(--radius);font-size:.88rem;}
+    select[multiple] option:checked{background:var(--teal-muted);color:var(--teal);}
+    /* img 720p */
+    .img-720p{width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:var(--radius);
+      border:1px solid var(--border);background:var(--bg-raised);margin-bottom:1.25rem;}
+    .img-720p img{width:100%;height:100%;object-fit:contain;}
+    /* offer row in modal */
+    .offer-row{display:flex;justify-content:space-between;align-items:center;
+      padding:.7rem .9rem;border-bottom:1px solid var(--border);font-size:.88rem;}
+    .offer-row:last-child{border-bottom:none;}
+  </style>
+<script src="/js/loader.js" defer></script>
+</head>
+<body>
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="loader-logo"><div class="loader-logo-dot"></div> E-Waste Recycling Manager</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">Loading…</div>
+</div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><span class="sidebar-logo-dot"></span> E-Waste Recycling Manager</div>
+      <div class="sidebar-role">Admin Portal</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Overview</div>
+      <a href="/admin/dashboard">&#9632; Dashboard</a>
+      <div class="sidebar-section-label">Management</div>
+      <a href="/admin/states">&#127759; States</a>
+      <a href="/admin/cities">&#127960; Cities</a>
+      <a href="/admin/ewaste-master">&#9855; E-Waste master</a>
+      <div class="sidebar-section-label">Users</div>
+      <a href="/admin/clients">&#128100; Clients</a>
+      <a href="/admin/agents">&#128101; Agents</a>
+      <div class="sidebar-section-label">Operations</div>
+      <a href="/admin/pickups" class="active">&#128230; Pickup requests</a>
+      <a href="/admin/contacts">&#128140; Contact messages</a>
+      <div class="sidebar-section-label">Account</div>
+      <a href="/admin/change-password">&#128274; Change password</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/logout" class="btn btn-sm btn-block" style="background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.3);justify-content:flex-start;">&#8594; Sign out</a>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="page-header">
+      <div class="page-title">Pickup Requests</div>
+      <div class="page-subtitle">Select agents by locality → invite them to make price offers → client accepts best deal</div>
+    </div>
+    <div class="content-area">
+      <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+      <div th:if="${error}"   class="alert alert-error"   th:text="${error}"></div>
+
+      <!-- Filter bar -->
+      <form th:action="@{/admin/pickups}" method="get" class="filter-bar">
+        <label for="statusFilter">Status:</label>
+        <select name="statusFilter" id="statusFilter" onchange="this.form.submit()">
+          <option value="" th:selected="${statusFilter == null or statusFilter == ''}">All statuses</option>
+          <option value="PENDING"   th:selected="${statusFilter == 'PENDING'}">Pending</option>
+          <option value="ASSIGNED"  th:selected="${statusFilter == 'ASSIGNED'}">Assigned</option>
+          <option value="COMPLETED" th:selected="${statusFilter == 'COMPLETED'}">Completed</option>
+          <option value="CANCELLED" th:selected="${statusFilter == 'CANCELLED'}">Cancelled</option>
+        </select>
+
+        <label for="cityFilter" style="margin-left:.5rem;">&#128205; Filter by locality:</label>
+        <select name="cityFilter" id="cityFilter" onchange="this.form.submit()">
+          <option value="" th:selected="${cityFilter == null}">All cities</option>
+          <option th:each="c : ${cities}"
+                  th:value="${c.id}" th:text="${c.name}"
+                  th:selected="${cityFilter != null and cityFilter == c.id}"></option>
+        </select>
+
+        <span th:if="${cityFilter != null}" style="font-size:.82rem;color:var(--teal);">
+          &#128205; Showing agents in selected city only
+        </span>
+        <a th:if="${cityFilter != null or (statusFilter != null and statusFilter != '')}"
+           href="/admin/pickups" class="btn btn-outline btn-sm" style="margin-left:auto;">&#10005; Clear filters</a>
+      </form>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Client</th><th>Item</th><th>Qty</th><th>Pickup address</th><th>Submitted</th><th>Status / Agents</th><th>Invite agents to offer</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr th:if="${#lists.isEmpty(pickups)}">
+              <td colspan="9" style="text-align:center;padding:3rem;color:var(--text-faint);">No pickup requests found.</td>
+            </tr>
+            <tr th:each="p, i : ${pickups}">
+              <td class="text-muted text-xs" th:text="${i.count}"></td>
+              <td>
+                <div class="font-bold text-sm" th:text="${p.client.name}"></div>
+                <div class="text-xs text-muted" th:text="${p.client.mobile}"></div>
+              </td>
+              <td class="font-bold" th:text="${p.ewaste.name}"></td>
+              <td th:text="${p.quantity} + ' unit(s)'"></td>
+              <td class="text-xs text-muted" style="max-width:150px;" th:text="${p.pickupAddress}"></td>
+              <td class="text-xs text-muted" th:text="${#temporals.format(p.requestedAt,'dd MMM yyyy')}"></td>
+              <td>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <span th:switch="${p.status}">
+                    <span th:case="'PENDING'"   class="badge badge-yellow">Pending</span>
+                    <span th:case="'ASSIGNED'"  class="badge badge-blue">Assigned</span>
+                    <span th:case="'COMPLETED'" class="badge badge-green">Completed</span>
+                    <span th:case="'CANCELLED'" class="badge badge-red">Cancelled</span>
+                    <span th:case="*" class="badge badge-muted" th:text="${p.status}"></span>
+                  </span>
+                  <!-- ACTIVE agents -->
+                  <span th:if="${assignmentsMap[p.id] != null}" th:each="asgn : ${assignmentsMap[p.id]}"
+                        class="text-xs" style="display:flex;align-items:center;gap:4px;color:#166534;">
+                    <span style="font-size:.65rem;">✅</span>
+                    <span th:text="${asgn.agent.name} + (${asgn.agent.city} != null ? ' · ' + ${asgn.agent.city.name} : '')"></span>
+                  </span>
+                  <!-- OFFERED agents (submitted price, awaiting client) -->
+                  <span th:if="${offersMap[p.id] != null}" th:each="asgn : ${offersMap[p.id]}"
+                        class="text-xs" style="display:flex;align-items:center;gap:4px;color:#1d4ed8;">
+                    <span style="font-size:.65rem;">💰</span>
+                    <span th:text="${asgn.agent.name} + ' (offered)'"></span>
+                  </span>
+                  <!-- INVITED agents (invited, no offer yet) -->
+                  <span th:if="${invitedMap[p.id] != null}" th:each="asgn : ${invitedMap[p.id]}"
+                        class="text-xs" style="display:flex;align-items:center;gap:4px;color:#b45309;">
+                    <span style="font-size:.65rem;">📬</span>
+                    <span th:text="${asgn.agent.name} + ' (invited)'"></span>
+                  </span>
+                </div>
+              </td>
+              <!-- Multi-agent assign column -->
+              <td style="min-width:180px;">
+                <form th:if="${p.status == 'PENDING' or p.status == 'ASSIGNED'}"
+                      th:action="@{/admin/pickups/assign}" method="post">
+                  <input type="hidden" name="pickupId" th:value="${p.id}"/>
+                  <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                  <select name="agentIds" multiple
+                          style="width:100%;min-height:72px;padding:4px 6px;"
+                          title="Select nearby agents (Ctrl/Cmd for multi)">
+                    <option th:each="a : ${agents}"
+                            th:value="${a.id}"
+                            th:text="${a.name} + (${a.city} != null ? ' · ' + ${a.city.name} : '')">
+                    </option>
+                  </select>
+                  <button type="submit" class="btn btn-primary btn-sm w-full" style="margin-top:5px;">
+                    &#128276; Invite to offer
+                  </button>
+                </form>
+                <div th:if="${p.status == 'COMPLETED' or p.status == 'CANCELLED'}"
+                     class="text-faint text-xs" style="padding:.5rem 0;">—</div>
+              </td>
+              <td>
+                <button class="btn btn-outline btn-sm" onclick="openView(this)"
+                        th:data-item="${p.ewaste.name}"
+                        th:data-client="${p.client.name}"
+                        th:data-mobile="${p.client.mobile}"
+                        th:data-email="${p.client.email}"
+                        th:data-qty="${p.quantity}"
+                        th:data-desc="${p.itemDescription != null ? p.itemDescription : ''}"
+                        th:data-img="${p.itemImagePath != null ? p.itemImagePath : ''}"
+                        th:data-address="${p.pickupAddress}"
+                        th:data-status="${p.status}"
+                        th:data-date="${#temporals.format(p.requestedAt,'dd MMM yyyy')}"
+                        th:data-client-id="${p.client.id}"
+                        th:data-pickup-id="${p.id}"
+                        th:data-agent="${assignmentsMap[p.id] != null and !#lists.isEmpty(assignmentsMap[p.id]) ? assignmentsMap[p.id][0].agent.name : ''}"
+                        th:data-agent-id="${assignmentsMap[p.id] != null and !#lists.isEmpty(assignmentsMap[p.id]) ? assignmentsMap[p.id][0].agent.id : ''}"
+                        th:data-agent-count="${assignmentsMap[p.id] != null ? assignmentsMap[p.id].size() : 0}"
+                        th:data-submitted="${#temporals.format(p.requestedAt,'dd MMM yyyy HH:mm')}"
+                        th:data-agent-assigned="${assignmentsMap[p.id] != null and !#lists.isEmpty(assignmentsMap[p.id]) ? #temporals.format(assignmentsMap[p.id][0].assignedAt,'dd MMM yyyy HH:mm') : ''}"
+                        th:data-collected="${assignmentsMap[p.id] != null and !#lists.isEmpty(assignmentsMap[p.id]) and assignmentsMap[p.id][0].collectedAt != null ? #temporals.format(assignmentsMap[p.id][0].collectedAt,'dd MMM yyyy HH:mm') : ''}"
+                        th:data-offer-count="${offersMap[p.id] != null ? offersMap[p.id].size() : 0}"
+                        th:data-invite-count="${invitedMap[p.id] != null ? invitedMap[p.id].size() : 0}"
+                        th:data-total-amount="${p.totalAmount != null ? p.totalAmount : ''}"
+                        th:data-certificate="${p.certificateIssued}">
+                  View
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View modal -->
+<div class="modal-overlay" id="viewModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="font-head font-bold" style="font-size:1.1rem;" id="mv-title">Pickup Details</span>
+      <button onclick="closeView()" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;">&#10005;</button>
+    </div>
+
+    <!-- 720p image -->
+    <div id="imgSection" class="img-720p" style="display:none;">
+      <img id="modalImg" src="" alt="Item photo"/>
+    </div>
+
+    <!-- Client section -->
+    <div style="background:var(--bg-raised);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;">
+      <div class="detail-label" style="margin-bottom:.6rem;">Client</div>
+      <div class="grid grid-2" style="gap:.5rem;">
+        <div class="detail-row" style="margin:0;"><div class="detail-label">Name</div><div class="detail-value" id="mv-client"></div></div>
+        <div class="detail-row" style="margin:0;"><div class="detail-label">Mobile</div><div class="detail-value" id="mv-mobile"></div></div>
+      </div>
+      <div class="detail-row" style="margin-top:.5rem;margin-bottom:0;"><div class="detail-label">Email</div><div class="detail-value" id="mv-email"></div></div>
+    </div>
+
+    <!-- Item section -->
+    <div style="background:var(--bg-raised);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;">
+      <div class="detail-label" style="margin-bottom:.6rem;">Item</div>
+      <div class="grid grid-2" style="gap:.5rem;">
+        <div class="detail-row" style="margin:0;"><div class="detail-label">Type</div><div class="detail-value" id="mv-item"></div></div>
+        <div class="detail-row" style="margin:0;"><div class="detail-label">Quantity</div><div class="detail-value" id="mv-qty"></div></div>
+        <div class="detail-row" style="margin:0;"><div class="detail-label">Status</div><div class="detail-value" id="mv-status"></div></div>
+        <div class="detail-row" style="margin:0;"><div class="detail-label">Submitted</div><div class="detail-value" id="mv-date"></div></div>
+      </div>
+      <div class="detail-row" style="margin-top:.5rem;margin-bottom:0;"><div class="detail-label">Client description</div><div class="detail-value" id="mv-desc"></div></div>
+      <div class="detail-row" style="margin-top:.5rem;margin-bottom:0;"><div class="detail-label">Pickup address</div><div class="detail-value" id="mv-address"></div></div>
+    </div>
+
+    <!-- Assigned agents -->
+    <div id="agentSection" style="display:none;background:var(--bg-raised);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;">
+      <div class="detail-label" style="margin-bottom:.6rem;">Assigned agents</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="detail-value" id="mv-agent"></div>
+        <a id="mv-agent-link" href="#" class="btn btn-outline btn-sm">Profile &#8599;</a>
+      </div>
+    </div>
+
+    <!-- Offers panel -->
+    <div id="offersPanel" style="display:none;margin-bottom:1rem;">
+      <div class="detail-label" style="margin-bottom:.6rem;">💰 Agent offers received</div>
+      <div id="offers-list" style="border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;"></div>
+    </div>
+
+    <!-- Invited panel -->
+    <div id="invitedPanel" style="display:none;margin-bottom:1rem;">
+      <div class="detail-label" style="margin-bottom:.6rem;">📬 Agents invited (awaiting their offer)</div>
+      <div id="invited-list" style="font-size:.875rem;color:var(--text-muted);padding:.75rem;background:var(--bg-raised);border-radius:var(--radius);"></div>
+    </div>
+
+    <!-- Full tracking timeline -->
+    <div style="border:1.5px solid var(--border);border-radius:var(--radius);padding:1.1rem;margin-bottom:1rem;background:var(--bg-raised);">
+      <div class="detail-label" style="margin-bottom:.85rem;">📋 Full pickup timeline</div>
+      <div id="trk-list" style="display:flex;flex-direction:column;gap:.6rem;font-size:.9rem;"></div>
+    </div>
+
+    <!-- Profile links -->
+    <div style="display:flex;gap:.75rem;">
+      <a id="mv-client-link" href="#" class="btn btn-outline btn-sm">View client profile &#8599;</a>
+    </div>
+  </div>
+</div>
+
+<script th:inline="javascript">
+// Server-side offers and invites data per pickup
+var serverOffersMap  = /*[[${offersMapJson}]]*/ '{}';
+var serverInvitedMap = /*[[${invitedMapJson}]]*/ '{}';
+
+function openView(btn) {
+  var d = btn.dataset;
+  document.getElementById('mv-title').textContent   = (d.item || '') + ' — Pickup';
+  document.getElementById('mv-item').textContent    = d.item || '';
+  document.getElementById('mv-client').textContent  = d.client || '';
+  document.getElementById('mv-mobile').textContent  = d.mobile || '';
+  document.getElementById('mv-email').textContent   = d.email || '';
+  document.getElementById('mv-qty').textContent     = (d.qty || '0') + ' unit(s)';
+  document.getElementById('mv-status').textContent  = d.status || '';
+  document.getElementById('mv-date').textContent    = d.date || '';
+  document.getElementById('mv-desc').textContent    = d.desc || '—';
+  document.getElementById('mv-address').textContent = d.address || '';
+
+  // Image
+  var imgSec = document.getElementById('imgSection');
+  var img = document.getElementById('modalImg');
+  if (d.img && d.img !== '') {
+    img.onerror = function() { document.getElementById('imgSection') && (document.getElementById('imgSection').style.display='none'); };
+    img.src = '/uploads/ewastes/' + d.img;
+    imgSec.style.display = 'block';
+  } else { imgSec.style.display = 'none'; }
+
+  // Assigned agents
+  var agentSec = document.getElementById('agentSection');
+  if (d.agent && d.agent !== '') {
+    var label = d.agent;
+    var cnt = parseInt(d.agentCount || '0');
+    if (cnt > 1) label += ' + ' + (cnt - 1) + ' more agent(s)';
+    document.getElementById('mv-agent').textContent = label;
+    document.getElementById('mv-agent-link').href = '/admin/agents/profile/' + d.agentId;
+    agentSec.style.display = 'block';
+  } else { agentSec.style.display = 'none'; }
+
+  // Tracking
+  var events = [];
+  if (d.submitted) events.push({label:'Request submitted', time: d.submitted, done:true});
+  if (d.agentAssigned) events.push({label:'Agent assigned', time: d.agentAssigned, done:true});
+  if (d.collected) events.push({label:'Collected', time: d.collected, done:true});
+  if (!d.collected) events.push({label: d.status === 'ASSIGNED' ? 'Awaiting collection' : d.status === 'PENDING' ? 'Awaiting agent' : d.status, time:'', done:false});
+  var trkList = document.getElementById('trk-list');
+  trkList.innerHTML = '';
+  events.forEach(function(ev) {
+    var dot = ev.done
+      ? '<span style="display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--green);color:#fff;font-size:.6rem;align-items:center;justify-content:center;flex-shrink:0;">✓</span>'
+      : '<span style="display:inline-flex;width:18px;height:18px;border-radius:50%;border:2px solid var(--border-bright);flex-shrink:0;"></span>';
+    trkList.insertAdjacentHTML('beforeend',
+      '<div style="display:flex;gap:.7rem;align-items:flex-start;">'
+      + dot + '<div><div style="font-weight:600;">' + ev.label + '</div>'
+      + (ev.time ? '<div style="font-size:.75rem;color:var(--text-muted);">' + ev.time + '</div>' : '')
+      + '</div></div>');
+  });
+
+  // Profile links
+  document.getElementById('mv-client-link').href = '/admin/clients/profile/' + d.clientId;
+
+  // Offers panel
+  var offerCount = parseInt(d.offerCount || '0');
+  var offersPanel = document.getElementById('offersPanel');
+  var offersList  = document.getElementById('offers-list');
+  if (offerCount > 0) {
+    offersPanel.style.display = 'block';
+    offersList.innerHTML = '';
+    try {
+      var om = JSON.parse(serverOffersMap || '{}');
+      var offers = om[d.pickupId] || [];
+      offers.forEach(function(o) {
+        var price = o.freeCollection ? 'Free' : (o.offeredPrice ? 'Rs.' + o.offeredPrice + '/item' : 'TBD');
+        offersList.insertAdjacentHTML('beforeend',
+          '<div style="display:flex;justify-content:space-between;align-items:center;' +
+          'padding:.7rem 1rem;border-bottom:1px solid var(--border);">' +
+          '<div><div style="font-weight:600;font-size:.9rem;">' + (o.agentName||'') + '</div>' +
+          '<div style="font-size:.78rem;color:var(--text-muted);">' + (o.agentCity||'') + '</div>' +
+          (o.remarks ? '<div style="font-size:.78rem;color:var(--text-muted);font-style:italic;">' + o.remarks + '</div>' : '') +
+          '</div><span style="font-weight:700;color:var(--green);font-size:.9rem;">' + price + '</span></div>'
+        );
+      });
+    } catch(e) { offersList.innerHTML = '<div style="padding:.75rem;color:var(--text-muted);">' + offerCount + ' offer(s) pending</div>'; }
+  } else { offersPanel.style.display = 'none'; }
+
+  // Invited panel
+  var inviteCount = parseInt(d.inviteCount || '0');
+  var invitedPanel = document.getElementById('invitedPanel');
+  var invitedList  = document.getElementById('invited-list');
+  if (inviteCount > 0) {
+    invitedPanel.style.display = 'block';
+    try {
+      var im = JSON.parse(serverInvitedMap || '{}');
+      var invited = im[d.pickupId] || [];
+      invitedList.innerHTML = invited.map(function(a){
+        return '<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 4px 2px 0;' +
+               'background:var(--green-light);color:var(--green);border-radius:100px;' +
+               'padding:3px 10px;font-size:.78rem;font-weight:600;">📬 ' + a + '</span>';
+      }).join('');
+    } catch(e) { invitedList.innerHTML = inviteCount + ' agent(s) invited'; }
+  } else { invitedPanel.style.display = 'none'; }
+
+  document.getElementById('viewModal').classList.add('open');
+}
+
+function closeView() { document.getElementById('viewModal').classList.remove('open'); }
+document.getElementById('viewModal').addEventListener('click', function(e) { if (e.target === this) closeView(); });
+</script>
+
+</body>
+</html>

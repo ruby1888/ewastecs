@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Contact Messages — E-Waste Recycling Management Network — Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/ewaste.css}"/>
+<script src="/js/loader.js" defer></script>
+</head>
+<body>
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="loader-logo"><div class="loader-logo-dot"></div> E-Waste Recycling Manager</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">Loading…</div>
+</div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><span class="sidebar-logo-dot"></span> E-Waste Recycling Manager</div>
+      <div class="sidebar-role">Admin Portal</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Overview</div>
+      <a href="/admin/dashboard">&#9632; Dashboard</a>
+      <div class="sidebar-section-label">Management</div>
+      <a href="/admin/states">&#127759; States</a>
+      <a href="/admin/cities">&#127960; Cities</a>
+      <a href="/admin/ewaste-master">&#9855; E-Waste master</a>
+      <div class="sidebar-section-label">Users</div>
+      <a href="/admin/clients">&#128100; Clients</a>
+      <a href="/admin/agents">&#128101; Agents</a>
+      <div class="sidebar-section-label">Operations</div>
+      <a href="/admin/pickups">&#128230; Pickup requests</a>
+      <a href="/admin/contacts" class="active">&#128140; Contact messages</a>
+      <div class="sidebar-section-label">Account</div>
+      <a href="/admin/change-password">&#128274; Change password</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/logout" class="btn btn-danger btn-sm btn-block" style="justify-content:flex-start;">&#8594; Sign out</a>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="page-header">
+      <div class="page-title">Contact Messages</div>
+      <div class="page-subtitle">Compose and send replies with branded letter format</div>
+    </div>
+    <div class="content-area">
+      <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+      <div th:if="${#lists.isEmpty(contacts)}"
+           style="text-align:center;padding:3rem;color:var(--text-faint);">
+        No contact messages yet.
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="card" th:each="c : ${contacts}"
+             th:style="${!c.replied} ? 'border-left:3px solid var(--teal);' : ''">
+          <div class="card-header">
+            <div>
+              <span class="font-bold" th:text="${c.name}"></span>
+              <span class="text-muted text-sm" style="margin-left:8px;"
+                    th:text="'&lt;' + ${c.email} + '&gt;'"></span>
+              <span th:if="${c.mobile}" class="text-xs text-muted" style="margin-left:6px;"
+                    th:text="'· ' + ${c.mobile}"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="text-xs text-muted"
+                    th:text="${#temporals.format(c.submittedAt,'dd MMM yyyy, HH:mm')}"></span>
+              <span th:if="${c.replied}"  class="badge badge-green">Replied</span>
+              <span th:unless="${c.replied}" class="badge badge-yellow">New</span>
+            </div>
+          </div>
+          <div class="card-body" style="padding:.9rem 1.5rem;">
+            <div class="text-sm font-bold mb-1" th:text="'Subject: ' + ${c.subject}"></div>
+            <div class="text-sm text-muted" style="line-height:1.7;" th:text="${c.message}"></div>
+          </div>
+          <div class="card-footer">
+            <div class="action-group">
+              <a th:href="@{'/admin/contacts/reply/' + ${c.id}}"
+                 class="btn btn-primary btn-sm">
+                &#128140; Compose reply
+              </a>
+              <a th:unless="${c.replied}"
+                 th:href="@{'/admin/contacts/mark-replied/' + ${c.id}}"
+                 class="btn btn-outline btn-sm">Mark as replied</a>
+            </div>
+            <span class="text-xs text-muted"
+                  th:text="${c.replied} ? 'Reply sent' : 'Reply to: ' + ${c.email}"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

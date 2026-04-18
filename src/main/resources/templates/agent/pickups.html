@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Pickups — E-Waste Recycling Manager Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/ewaste.css}"/>
+  <style>
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:var(--radius-xl);
+      padding:2rem;max-width:600px;width:94%;max-height:92vh;overflow-y:auto;animation:fadeUp .25s ease;}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;}
+    .detail-row{margin-bottom:.9rem;}
+    .detail-label{font-size:.7rem;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;}
+    .detail-value{font-size:.88rem;color:var(--text);font-weight:500;}
+    /* 720p image container — 16:9 */
+    .img-720p{width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:var(--radius);
+              border:1px solid var(--border);background:var(--bg-raised);margin-bottom:1.25rem;}
+    .img-720p img{width:100%;height:100%;object-fit:contain;}
+    /* track timeline */
+    .track-event{display:flex;gap:.75rem;align-items:flex-start;padding:.5rem 0;}
+    .track-dot{width:10px;height:10px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:4px;}
+    .track-dot.done{background:var(--accent-success);}
+    .track-line{position:relative;}
+    .track-line::before{content:'';position:absolute;left:4px;top:10px;bottom:-4px;width:2px;background:var(--border);}
+  </style>
+<script src="/js/loader.js" defer></script>
+</head>
+<body>
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="loader-logo"><div class="loader-logo-dot"></div> E-Waste Recycling Manager</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">Loading…</div>
+</div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><span class="sidebar-logo-dot"></span> E-Waste Recycling Manager</div>
+      <div class="sidebar-role">Agent Portal</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Menu</div>
+      <a href="/agent/dashboard">&#9632; Dashboard</a>
+      <a href="/agent/pickups" class="active">&#128230; My pickups</a>
+      <a href="/agent/pickup-requests">&#128270; Browse requests</a>
+      <div class="sidebar-section-label">Account</div>
+      <a href="/agent/profile">&#9737; Profile</a>
+      <a href="/agent/change-password">&#128274; Change password</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/logout" class="btn btn-sm btn-block" style="background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.3);justify-content:flex-start;">&#8594; Sign out</a>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="page-header">
+      <div class="page-title">My Pickups</div>
+      <div class="page-subtitle">Assigned collection tasks</div>
+    </div>
+    <div class="content-area">
+      <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+      <div class="grid grid-3 stagger mb-3">
+        <div class="stat-card"><div class="stat-icon blue">&#128203;</div><div><div class="stat-value" th:text="${assignments.size()}">0</div><div class="stat-label">Total assigned</div></div></div>
+        <div class="stat-card"><div class="stat-icon yellow">&#9711;</div><div><div class="stat-value" th:text="${pendingCount}">0</div><div class="stat-label">Pending</div></div></div>
+        <div class="stat-card"><div class="stat-icon green">&#10003;</div><div><div class="stat-value" th:text="${collectedCount}">0</div><div class="stat-label">Collected</div></div></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Client</th><th>Item</th><th>Qty</th><th>Address</th><th>Assigned</th><th>Pickup date</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            <tr th:if="${#lists.isEmpty(assignments)}">
+              <td colspan="9" style="text-align:center;padding:3rem;color:var(--text-faint);">No pickups assigned yet. <a href="/agent/pickup-requests">Browse open requests →</a></td>
+            </tr>
+            <tr th:each="a, i : ${assignments}">
+              <td class="text-muted text-sm" th:text="${i.count}"></td>
+              <td>
+                <div class="font-bold text-sm" th:text="${a.clientEwaste.client.name}"></div>
+                <div class="text-xs text-muted" th:text="${a.clientEwaste.client.mobile}"></div>
+              </td>
+              <td class="font-bold" th:text="${a.clientEwaste.ewaste.name}"></td>
+              <td th:text="${a.clientEwaste.quantity} + ' unit(s)'"></td>
+              <td class="text-sm text-muted" style="max-width:150px;" th:text="${a.clientEwaste.pickupAddress}"></td>
+              <td class="text-sm text-muted" th:text="${#temporals.format(a.assignedAt,'dd MMM yyyy')}"></td>
+              <td class="text-sm" th:text="${a.pickupDate != null ? #temporals.format(a.pickupDate,'dd MMM yyyy') : '—'}"></td>
+              <td>
+                <span th:switch="${a.clientEwaste.status}">
+                  <span th:case="'ASSIGNED'"  class="badge badge-blue">Assigned</span>
+                  <span th:case="'COMPLETED'" class="badge badge-green">Collected</span>
+                  <span th:case="*" class="badge badge-muted" th:text="${a.clientEwaste.status}"></span>
+                </span>
+              </td>
+              <td>
+                <div class="action-group">
+                  <button class="btn btn-outline btn-sm" onclick="openViewFromData(this)"
+                          th:data-id="${a.id}"
+                          th:data-client="${a.clientEwaste.client.name}"
+                          th:data-mobile="${a.clientEwaste.client.mobile}"
+                          th:data-item="${a.clientEwaste.ewaste.name}"
+                          th:data-qty="${a.clientEwaste.quantity}"
+                          th:data-desc="${a.clientEwaste.itemDescription != null ? a.clientEwaste.itemDescription : ''}"
+                          th:data-img="${a.clientEwaste.itemImagePath != null ? a.clientEwaste.itemImagePath : ''}"
+                          th:data-address="${a.clientEwaste.pickupAddress}"
+                          th:data-status="${a.clientEwaste.status}"
+                          th:data-date="${a.pickupDate != null ? a.pickupDate : ''}"
+                          th:data-receiver="${a.receiverName != null ? a.receiverName : ''}"
+                          th:data-contact="${a.receiverContact != null ? a.receiverContact : ''}"
+                          th:data-price="${a.offeredPrice != null ? a.offeredPrice : ''}"
+                          th:data-free="${a.freeCollection}"
+                          th:data-remarks="${a.remarks != null ? a.remarks : ''}"
+                          th:data-assigned="${#temporals.format(a.assignedAt,'dd MMM yyyy HH:mm')}"
+                          th:data-collected="${a.collectedAt != null ? #temporals.format(a.collectedAt,'dd MMM yyyy HH:mm') : ''}">
+                    View / Edit
+                  </button>
+                  <form th:if="${a.clientEwaste.status == 'ASSIGNED'}"
+                        th:action="@{'/agent/pickups/collect/' + ${a.id}}" method="post" style="display:inline;">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <button type="submit" class="btn btn-primary btn-sm">&#10003; Mark Collected</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View / Edit modal -->
+<div class="modal-overlay" id="viewModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="font-head font-bold" style="font-size:1.05rem;">Pickup Details</span>
+      <button onclick="closeView()" style="background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer;">&#10005;</button>
+    </div>
+
+    <!-- 720p 16:9 image section -->
+    <div id="imgSection" class="img-720p" style="display:none;">
+      <img id="modalImg" src="" alt="Item photo"/>
+    </div>
+
+    <!-- Track events -->
+    <div style="background:var(--bg-raised);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;">
+      <div class="detail-label" style="margin-bottom:.75rem;">Pickup timeline</div>
+      <div class="track-event track-line"><div class="track-dot done"></div><div><div class="text-sm font-bold">Assigned</div><div class="text-xs text-muted" id="t-assigned"></div></div></div>
+      <div class="track-event track-line" id="t-date-row" style="display:none;"><div class="track-dot"></div><div><div class="text-sm font-bold">Scheduled pickup</div><div class="text-xs text-muted" id="t-date"></div></div></div>
+      <div class="track-event" id="t-collected-row" style="display:none;"><div class="track-dot done"></div><div><div class="text-sm font-bold">Collected</div><div class="text-xs text-muted" id="t-collected"></div></div></div>
+    </div>
+
+    <!-- Client info -->
+    <div style="background:var(--bg-raised);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;">
+      <div class="detail-label" style="margin-bottom:.5rem;">Client info</div>
+      <div class="grid grid-2" style="gap:.5rem;">
+        <div class="detail-row" style="margin:0;"><div class="detail-label">Name</div><div class="detail-value" id="mv-client"></div></div>
+        <div class="detail-row" style="margin:0;"><div class="detail-label">Mobile</div><div class="detail-value" id="mv-mobile"></div></div>
+      </div>
+    </div>
+
+    <!-- Item info -->
+    <div style="background:var(--bg-raised);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;">
+      <div class="detail-label" style="margin-bottom:.5rem;">Item info</div>
+      <div class="grid grid-2" style="gap:.5rem;">
+        <div class="detail-row" style="margin:0;"><div class="detail-label">Item</div><div class="detail-value" id="mv-item"></div></div>
+        <div class="detail-row" style="margin:0;"><div class="detail-label">Quantity</div><div class="detail-value" id="mv-qty"></div></div>
+      </div>
+      <div class="detail-row" style="margin-top:.5rem;margin-bottom:0;"><div class="detail-label">Client description</div><div class="detail-value" id="mv-desc"></div></div>
+      <div class="detail-row" style="margin-top:.5rem;margin-bottom:0;"><div class="detail-label">Pickup address</div><div class="detail-value" id="mv-address"></div></div>
+    </div>
+
+    <!-- Update form -->
+    <div style="border:1px solid var(--border);border-radius:var(--radius);padding:1rem;">
+      <div class="detail-label" style="margin-bottom:1rem;">Update pickup details</div>
+      <form id="updateForm" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <div class="grid grid-2" style="gap:.75rem;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Pickup date</label>
+            <input type="date" name="pickupDate" id="f-date" class="form-control"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Receiver name</label>
+            <input type="text" name="receiverName" id="f-receiver" class="form-control" placeholder="Who receives at collection"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Receiver contact</label>
+            <input type="text" name="receiverContact" id="f-contact" class="form-control" placeholder="Mobile number"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Offered value / item (₹)</label>
+            <input type="number" name="offeredPrice" id="f-price" class="form-control"
+                   step="0.01" min="0" placeholder="0.00"/>
+          </div>
+        </div>
+        <div class="form-group mt-2" style="margin-bottom:.75rem;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" name="freeCollection" id="f-free"
+                   onchange="toggleFreeCollection(this)"
+                   style="width:16px;height:16px;accent-color:var(--teal);"/>
+            <span class="text-sm">Free collection (no payment to client)</span>
+          </label>
+        </div>
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label class="form-label">Remarks / notes</label>
+          <textarea name="remarks" id="f-remarks" class="form-control" rows="2" placeholder="Internal notes..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Save details</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+// Set minimum date to today
+function setMinDate() {
+  var today = new Date().toISOString().split('T')[0];
+  var d = document.getElementById('f-date') || document.getElementById('f-date-input');
+  if (d) d.min = today;
+}
+function openViewFromData(btn) {
+  setMinDate();
+  var d = btn.dataset;
+  document.getElementById('mv-client').textContent  = d.client || '';
+  document.getElementById('mv-mobile').textContent  = d.mobile || '';
+  document.getElementById('mv-item').textContent    = d.item || '';
+  document.getElementById('mv-qty').textContent     = (d.qty || '0') + ' unit(s)';
+  document.getElementById('mv-desc').textContent    = d.desc || '—';
+  document.getElementById('mv-address').textContent = d.address || '';
+
+  // 720p image
+  var imgSection = document.getElementById('imgSection');
+  var img = document.getElementById('modalImg');
+  if (d.img && d.img !== '') {
+    img.onerror = function() { document.getElementById('imgSection') && (document.getElementById('imgSection').style.display='none'); };
+    img.src = '/uploads/ewastes/' + d.img;
+    imgSection.style.display = 'block';
+  } else { imgSection.style.display = 'none'; }
+
+  // Timeline
+  document.getElementById('t-assigned').textContent = d.assigned || '';
+  var dateRow = document.getElementById('t-date-row');
+  if (d.date && d.date !== '') {
+    document.getElementById('t-date').textContent = d.date;
+    dateRow.style.display = 'flex';
+  } else { dateRow.style.display = 'none'; }
+  var colRow = document.getElementById('t-collected-row');
+  if (d.collected && d.collected !== '') {
+    document.getElementById('t-collected').textContent = d.collected;
+    colRow.style.display = 'flex';
+  } else { colRow.style.display = 'none'; }
+
+  document.getElementById('updateForm').action = '/agent/pickups/update/' + d.id;
+  document.getElementById('f-date').value     = d.date || '';
+  document.getElementById('f-receiver').value = d.receiver || '';
+  document.getElementById('f-contact').value  = d.contact || '';
+  document.getElementById('f-remarks').value  = d.remarks || '';
+
+  var isFree = (d.free === 'true');
+  document.getElementById('f-free').checked = isFree;
+  var priceInput = document.getElementById('f-price');
+  priceInput.value = isFree ? '' : (d.price || '');
+  priceInput.disabled = isFree;
+  priceInput.style.opacity = isFree ? '0.4' : '1';
+
+  document.getElementById('viewModal').classList.add('open');
+}
+
+function toggleFreeCollection(cb) {
+  var priceInput = document.getElementById('f-price');
+  priceInput.disabled = cb.checked;
+  priceInput.style.opacity = cb.checked ? '0.4' : '1';
+  if (cb.checked) priceInput.value = '';
+}
+
+function closeView() { document.getElementById('viewModal').classList.remove('open'); }
+document.getElementById('viewModal').addEventListener('click', function(e) {
+  if (e.target === this) closeView();
+});
+</script>
+
+<script>
+// ── Date validation: all date inputs must be today or future ─────────────
+(function() {
+  function setMinDate(inputId) {
+    var el = document.getElementById(inputId);
+    if (!el) el = document.querySelector('input[name="' + inputId + '"]');
+    if (!el && inputId.startsWith('#')) el = document.querySelector(inputId);
+    if (el && el.type === 'date') {
+      var today = new Date();
+      today.setHours(0, 0, 0, 0);
+      el.min = today.toISOString().split('T')[0];
+      el.max = new Date(today.getFullYear() + 2, today.getMonth(), today.getDate())
+                 .toISOString().split('T')[0];
+      el.addEventListener('change', function() {
+        var chosen = new Date(el.value);
+        if (chosen < today) {
+          el.setCustomValidity('Please select today or a future date.');
+          el.reportValidity();
+          el.value = '';
+        } else {
+          el.setCustomValidity('');
+        }
+      });
+    }
+  }
+  document.querySelectorAll('input[type="date"]').forEach(function(el) {
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    el.min = today.toISOString().split('T')[0];
+    el.max = new Date(today.getFullYear() + 2, today.getMonth(), today.getDate())
+               .toISOString().split('T')[0];
+    el.addEventListener('change', function() {
+      var chosen = new Date(el.value);
+      if (chosen < today) {
+        el.setCustomValidity('Please choose today or a future date.');
+        el.reportValidity();
+        el.value = '';
+      } else { el.setCustomValidity(''); }
+    });
+  });
+})();
+</script>
+</body>
+</html>

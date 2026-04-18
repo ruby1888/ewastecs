@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Certificates — E-Waste Recycling Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/ewaste.css}"/>
+<script src="/js/loader.js" defer></script>
+</head>
+<body>
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="loader-logo"><div class="loader-logo-dot"></div> E-Waste Recycling Manager</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">Loading…</div>
+</div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><span class="sidebar-logo-dot"></span> E-Waste Recycling Manager</div>
+      <div class="sidebar-role">Client Portal</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/client/dashboard">&#9632; Dashboard</a>
+      <a href="/client/add-ewaste">&#43; New pickup request</a>
+      <a href="/client/my-certificates" class="active">&#128196; My certificates</a>
+      <div class="sidebar-section-label">Account</div>
+      <a href="/client/profile">&#9737; Profile</a>
+      <a href="/client/change-password">&#128274; Change password</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/logout" class="btn btn-sm btn-block" style="background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.3);justify-content:flex-start;">&#8594; Sign out</a>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="page-header">
+      <div class="page-title">My certificates</div>
+      <div class="page-subtitle">Verified recycling records for completed pickups</div>
+    </div>
+    <div class="content-area">
+      <div th:if="${#lists.isEmpty(completedRequests)}" style="text-align:center; padding:4rem 0; color:var(--text-faint);">
+        <div style="font-size:3rem; margin-bottom:1rem;">📭</div>
+        <div style="font-size:1rem; color:var(--text-muted);">No completed pickups yet.</div>
+        <a href="/client/add-ewaste" class="btn btn-primary mt-2">Submit a request</a>
+      </div>
+
+      <div class="grid grid-2 stagger" th:unless="${#lists.isEmpty(completedRequests)}">
+        <div class="card" th:each="r : ${completedRequests}">
+          <div class="card-body" style="border-left: 3px solid var(--green);">
+            <div class="flex justify-between items-center mb-2">
+              <span class="badge badge-green">Certified</span>
+              <span class="text-xs text-muted" th:text="${#temporals.format(r.requestedAt,'dd MMM yyyy')}"></span>
+            </div>
+            <div class="font-head font-bold" style="font-size:1.05rem;" th:text="${r.ewaste.name}">Item</div>
+            <div class="text-muted text-sm mt-1">
+              Quantity: <strong th:text="${r.quantity}">0</strong>units &nbsp;|&nbsp;
+              
+            </div>
+            <div class="text-xs text-muted mt-1">
+              Pickup: <span th:text="${r.pickupAddress}">Address</span>
+            </div>
+            <div class="divider"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="font-size:0.78rem; color:var(--text-faint);">
+                Certificate ID: EW-<span th:text="${r.id}">000</span>
+              </div>
+              <a th:href="@{'/client/certificate/' + ${r.id}}"
+                 class="btn btn-primary btn-sm">View Certificate &#8599;</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

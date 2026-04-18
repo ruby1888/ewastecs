@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"/><title>My Pickups — E-Waste Recycling Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/ewaste.css}"/><script src="/js/loader.js" defer></script>
+</head>
+<body>
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="loader-logo"><div class="loader-logo-dot"></div> E-Waste Recycling Manager</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">Loading…</div>
+</div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-header"><div class="sidebar-logo"><span class="sidebar-logo-dot"></span> E-Waste Recycling Manager</div><div class="sidebar-role">Agent Portal</div></div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Menu</div>
+      <a href="/agent/dashboard">&#9632; Dashboard</a>
+      <a href="/agent/pickups" class="active">&#128230; My pickups</a>
+      <a href="/agent/pickup-requests">&#128270; Browse requests</a>
+      <div class="sidebar-section-label">Account</div>
+      <a href="/agent/profile">&#9737; Profile</a>
+      <a href="/agent/change-password">&#128274; Change password</a>
+    </nav>
+    <div class="sidebar-footer"><a href="/logout" class="btn btn-sm btn-block" style="background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.3);justify-content:flex-start;">&#8594; Sign out</a></div>
+  </aside>
+  <div class="main-content">
+    <div class="page-header"><div class="page-title">My pickups</div><div class="page-subtitle">All assignments in your queue</div></div>
+    <div class="content-area">
+      <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Client</th><th>Item</th><th>Qty</th><th>Address</th><th>Assigned</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr th:if="${#lists.isEmpty(assignments)}"><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-faint);">No pickups yet.</td></tr>
+            <tr th:each="a,i : ${assignments}">
+              <td th:text="${i.count}"></td>
+              <td th:text="${a.clientEwaste.client.name}"></td>
+              <td class="font-bold" th:text="${a.clientEwaste.ewaste.name}"></td>
+              <td th:text="${a.clientEwaste.quantity} + ' unit(s)'"></td>
+              <td class="text-sm" th:text="${a.clientEwaste.pickupAddress}"></td>
+              <td class="text-sm text-muted" th:text="${#temporals.format(a.assignedAt,'dd MMM yyyy')}"></td>
+              <td>
+                <span th:switch="${a.clientEwaste.status}">
+                  <span th:case="'ASSIGNED'"  class="badge badge-blue">Assigned</span>
+                  <span th:case="'COMPLETED'" class="badge badge-green">Completed</span>
+                  <span th:case="*"           class="badge badge-muted" th:text="${a.clientEwaste.status}"></span>
+                </span>
+              </td>
+              <td>
+                <form th:if="${a.clientEwaste.status == 'ASSIGNED'}"
+                      th:action="@{'/agent/pickups/collect/' + ${a.id}}" method="post">
+                  <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                  <button class="btn btn-primary btn-sm">Mark collected</button>
+                </form>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body></html>

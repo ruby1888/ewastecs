@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Client Profile — E-Waste Recycling Manager Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/ewaste.css}"/>
+<script src="/js/loader.js" defer></script>
+</head>
+<body>
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="loader-logo"><div class="loader-logo-dot"></div> E-Waste Recycling Manager</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">Loading…</div>
+</div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><span class="sidebar-logo-dot"></span> E-Waste Recycling Manager</div>
+      <div class="sidebar-role">Admin Portal</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Overview</div>
+      <a href="/admin/dashboard">&#9632; Dashboard</a>
+      <div class="sidebar-section-label">Management</div>
+      <a href="/admin/states">&#127759; States</a>
+      <a href="/admin/cities">&#127960; Cities</a>
+      <a href="/admin/ewaste-master">&#9855; E-Waste master</a>
+      <div class="sidebar-section-label">Users</div>
+      <a href="/admin/clients">&#128100; Clients</a>
+      <a href="/admin/agents">&#128101; Agents</a>
+      <div class="sidebar-section-label">Operations</div>
+      <a href="/admin/pickups">&#128230; Pickup requests</a>
+      <a href="/admin/contacts">&#128140; Contact messages</a>
+      <div class="sidebar-section-label">Account</div>
+      <a href="/admin/change-password">&#128274; Change password</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/logout" class="btn btn-sm btn-block" style="background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.3);justify-content:flex-start;">&#8594; Sign out</a>
+    </div>
+  </aside>
+  <div class="main-content">
+    <div class="page-header">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div class="page-title" th:text="${profileClient.name}">Client</div>
+          <div class="page-subtitle" th:text="${profileClient.email}"></div>
+        </div>
+        <a href="/admin/clients" class="btn btn-outline btn-sm">&#8592; Back to clients</a>
+      </div>
+    </div>
+    <div class="content-area">
+      <div class="grid grid-4 stagger mb-3">
+        <div class="stat-card"><div class="stat-icon blue">&#128203;</div><div><div class="stat-value" th:text="${requests.size()}">0</div><div class="stat-label">Total requests</div></div></div>
+        <div class="stat-card"><div class="stat-icon yellow">&#9711;</div><div><div class="stat-value" th:text="${pendingCount}">0</div><div class="stat-label">Pending</div></div></div>
+        <div class="stat-card"><div class="stat-icon green">&#10003;</div><div><div class="stat-value" th:text="${completedCount}">0</div><div class="stat-label">Completed</div></div></div>
+        <div class="stat-card">
+          <div class="stat-icon" th:style="${profileClient.active} ? 'background:rgba(52,211,153,.12);color:var(--teal)' : 'background:rgba(248,113,113,.12);color:#f87171'">&#128100;</div>
+          <div><div class="stat-value" style="font-size:1rem;" th:text="${profileClient.active} ? 'Active' : 'Blocked'"></div><div class="stat-label">Status</div></div>
+        </div>
+      </div>
+      <div class="grid grid-2 mb-3" style="gap:1.5rem;align-items:start;">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Contact details</span></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:.85rem;">
+            <div><div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Name</div><div class="font-bold" th:text="${profileClient.name}"></div></div>
+            <div><div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Email</div><div th:text="${profileClient.email}"></div></div>
+            <div><div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Mobile</div><div th:text="${profileClient.mobile ?: '—'}"></div></div>
+            <div><div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Address</div><div class="text-sm" th:text="${profileClient.address ?: '—'}"></div></div>
+          </div>
+          <div class="card-footer">
+            <a th:href="@{'/admin/clients/toggle/' + ${profileClient.id}}"
+               th:class="${profileClient.active} ? 'btn btn-warn btn-sm' : 'btn btn-primary btn-sm'"
+               th:text="${profileClient.active} ? 'Block account' : 'Unblock account'">Toggle</a>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Pickup history</span></div>
+          <div class="card-body" style="padding:.75rem 1.25rem;">
+            <div th:if="${#lists.isEmpty(requests)}" class="text-muted text-sm" style="padding:1rem 0;">No requests yet.</div>
+            <div th:each="r : ${requests}" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--border);">
+              <div>
+                <div class="text-sm font-bold" th:text="${r.ewaste.name}"></div>
+                <div class="text-xs text-muted" th:text="${r.quantity} + ' unit(s) · ' + ${#temporals.format(r.requestedAt,'dd MMM yyyy')}"></div>
+              </div>
+              <span th:switch="${r.status}">
+                <span th:case="'PENDING'"   class="badge badge-yellow">Pending</span>
+                <span th:case="'ASSIGNED'"  class="badge badge-blue">Assigned</span>
+                <span th:case="'COMPLETED'" class="badge badge-green">Done</span>
+                <span th:case="*" class="badge badge-muted" th:text="${r.status}"></span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

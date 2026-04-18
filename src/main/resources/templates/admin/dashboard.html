@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — E-Waste Recycling Management Network — Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/ewaste.css}"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="/js/loader.js" defer></script>
+</head>
+<body>
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="loader-logo"><div class="loader-logo-dot"></div> E-Waste Recycling Manager</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">Loading…</div>
+</div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><span class="sidebar-logo-dot"></span> E-Waste Recycling Manager</div>
+      <div class="sidebar-role">Admin Portal</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Overview</div>
+      <a href="/admin/dashboard" class="active">&#9632; Dashboard</a>
+      <div class="sidebar-section-label">Management</div>
+      <a href="/admin/states">&#127759; States</a>
+      <a href="/admin/cities">&#127960; Cities</a>
+      <a href="/admin/ewaste-master">&#9855; E-Waste master</a>
+      <div class="sidebar-section-label">Users</div>
+      <a href="/admin/clients">&#128100; Clients</a>
+      <a href="/admin/agents">&#128101; Agents</a>
+      <div class="sidebar-section-label">Operations</div>
+      <a href="/admin/pickups">&#128230; Pickup requests</a>
+      <a href="/admin/contacts">&#128140; Contact messages</a>
+      <div class="sidebar-section-label">Account</div>
+      <a href="/admin/change-password">&#128274; Change password</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" style="background:rgba(255,255,255,.18);color:#fff;">A</div>
+        <div>
+          <div class="sidebar-user-name" th:text="${adminEmail}">admin</div>
+          <div class="sidebar-user-role">Super Admin</div>
+        </div>
+      </div>
+      <a href="/logout" class="btn btn-danger btn-sm btn-block mt-1" style="justify-content:flex-start;">&#8594; Sign out</a>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="page-header">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-subtitle">Platform overview — real-time snapshot</div>
+        </div>
+        <!-- Admin Notification Bell -->
+        <div class="notif-wrap" id="notifWrap">
+          <button class="notif-btn" onclick="toggleNotif()" title="Notifications">
+            &#128276;
+            <span th:if="${!#lists.isEmpty(notifications)}" class="notif-badge"
+                  th:text="${notifications.size()}">0</span>
+          </button>
+          <div class="notif-dropdown" id="notifDropdown">
+            <div class="notif-dropdown-header" style="display:flex;justify-content:space-between;align-items:center;">
+              <span>System notifications</span>
+              <form th:unless="${#lists.isEmpty(notifications)}"
+                    th:action="@{/admin/notifications/clear}" method="post" style="margin:0;">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-sm"
+                        style="font-size:.7rem;padding:2px 8px;">&#10005; Clear</button>
+              </form>
+            </div>
+            <div th:if="${#lists.isEmpty(notifications)}" class="notif-empty">No notifications.</div>
+            <div th:each="n : ${notifications}" class="notif-item" th:classappend="${!n.read} ? ' unread' : ''">
+              <div th:text="${n.message}"></div>
+              <div class="notif-time" th:text="${#temporals.format(n.createdAt,'dd MMM, HH:mm')}"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-area">
+      <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+      <!-- Alert banners -->
+      <div th:if="${pendingAgents > 0}" class="alert alert-warn">
+        <strong th:text="${pendingAgents}">0</strong>&nbsp;agent(s) awaiting approval.
+        <a href="/admin/agents" class="font-bold" style="margin-left:8px;">Review now &#8594;</a>
+      </div>
+      <div th:if="${pendingContacts > 0}" class="alert alert-info">
+        <strong th:text="${pendingContacts}">0</strong>&nbsp;unread contact message(s).
+        <a href="/admin/contacts" class="font-bold" style="margin-left:8px;">View messages &#8594;</a>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="grid grid-4 stagger mb-3">
+        <div class="stat-card">
+          <div class="stat-icon green">&#128100;</div>
+          <div><div class="stat-value" th:text="${totalClients}">0</div><div class="stat-label">Clients</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">&#128101;</div>
+          <div><div class="stat-value" th:text="${totalAgents}">0</div><div class="stat-label">Agents</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon yellow">&#9711;</div>
+          <div><div class="stat-value" th:text="${pendingPickups}">0</div><div class="stat-label">Pending pickups</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">&#10003;</div>
+          <div><div class="stat-value" th:text="${completedPickups}">0</div><div class="stat-label">Completed</div></div>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div class="grid grid-2 mb-3" style="gap:1.5rem;">
+        <div class="chart-card">
+          <div class="chart-title">Pickup request breakdown</div>
+          <div class="chart-wrap">
+            <canvas id="pickupChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">User distribution</div>
+          <div class="chart-wrap">
+            <canvas id="userChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent pending -->
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="font-head" style="font-size:1.05rem;font-weight:700;">Recent pending pickups</h2>
+        <a href="/admin/pickups" class="btn btn-outline btn-sm">View all &#8594;</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Client</th><th>Item</th><th>Qty</th><th>Address</th><th>Date</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr th:if="${#lists.isEmpty(recentRequests)}">
+              <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-faint);">No pending requests.</td>
+            </tr>
+            <tr th:each="r, i : ${recentRequests}">
+              <td th:text="${i.count}"></td>
+              <td th:text="${r.client.name}"></td>
+              <td class="font-bold" th:text="${r.ewaste.name}"></td>
+              <td th:text="${r.quantity} + ' unit(s)'"></td>
+              <td class="text-sm text-muted" th:text="${r.pickupAddress}"></td>
+              <td class="text-sm text-muted" th:text="${#temporals.format(r.requestedAt,'dd MMM')}"></td>
+              <td><span class="badge badge-yellow">Pending</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script th:inline="javascript">
+const pickupData = /*[[${chartPickupData}]]*/ '[0,0,0,0]';
+const userData   = /*[[${chartUserData}]]*/ '[0,0]';
+
+// Parse safely
+const pd = JSON.parse(pickupData);
+const ud = JSON.parse(userData);
+
+const chartDefaults = {
+  plugins: { legend: { labels: { color: '#5a5a52', font: { family: 'DM Sans', size: 12 } } } }
+};
+
+// Pickup doughnut chart
+new Chart(document.getElementById('pickupChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Pending', 'Assigned', 'Completed', 'Cancelled'],
+    datasets: [{
+      data: pd,
+      backgroundColor: ['rgba(251,191,36,.8)', 'rgba(96,165,250,.8)',
+                        'rgba(52,211,153,.8)', 'rgba(248,113,113,.8)'],
+      borderColor: '#ffffff',
+      borderWidth: 2,
+      hoverOffset: 6
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, cutout: '65%',
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#5a5a52', padding: 16,
+                font: { family: 'DM Sans', size: 12 } } }
+    }
+  }
+});
+
+// User bar chart
+new Chart(document.getElementById('userChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Clients', 'Agents'],
+    datasets: [{
+      label: 'Registered users',
+      data: ud,
+      backgroundColor: ['rgba(52,211,153,.7)', 'rgba(96,165,250,.7)'],
+      borderColor:      ['rgba(52,211,153,1)',  'rgba(96,165,250,1)'],
+      borderWidth: 1, borderRadius: 8
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      x: { grid: { color: 'rgba(45,63,85,.5)' }, ticks: { color: '#5a5a52' } },
+      y: { grid: { color: 'rgba(45,63,85,.5)' }, ticks: { color: '#5a5a52', precision: 0 },
+           beginAtZero: true }
+    },
+    ...chartDefaults
+  }
+});
+</script>
+
+</body>
+</html>

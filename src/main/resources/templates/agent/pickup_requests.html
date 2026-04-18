@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Requests — E-Waste Recycling Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/ewaste.css}"/>
+  <script src="/js/loader.js" defer></script>
+  <style>
+    .req-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1.25rem;}
+    .req-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-lg);
+      padding:1.5rem;display:flex;flex-direction:column;gap:1rem;
+      box-shadow:0 1px 4px rgba(0,0,0,.06);transition:border-color .2s,box-shadow .2s;}
+    .req-card:hover{border-color:var(--green);box-shadow:var(--shadow-md);}
+    .req-card.invited{border-left:3px solid #f59e0b;}
+    .req-card.offered{border-left:3px solid #3b82f6;opacity:.85;}
+    .invited-badge{display:inline-flex;align-items:center;gap:6px;background:#fef3e2;color:#b45309;
+      border:1.5px solid #fcd34d;border-radius:100px;padding:4px 12px;font-size:.78rem;font-weight:700;}
+    .offered-badge{display:inline-flex;align-items:center;gap:6px;background:#eff6ff;color:#1d4ed8;
+      border:1.5px solid #93c5fd;border-radius:100px;padding:4px 12px;font-size:.78rem;font-weight:700;}
+    .offer-form{background:var(--bg-2);border-radius:var(--radius);padding:1.1rem;border:1.5px solid var(--border);}
+    .img-thumb{width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:var(--radius);
+      border:1.5px solid var(--border);background:var(--bg-2);}
+    .img-thumb img{width:100%;height:100%;object-fit:contain;}
+    .empty-box{text-align:center;padding:4rem 2rem;background:#fff;
+      border:1.5px solid var(--border);border-radius:var(--radius-xl);}
+  </style>
+</head>
+<body>
+<div id="loading-screen">
+  <div class="loader-logo"><div class="loader-logo-dot"></div> E-Waste Recycling Manager</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">Loading…</div>
+</div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><span class="sidebar-logo-dot"></span> E-Waste Recycling Manager</div>
+      <div class="sidebar-role">Agent Portal</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Menu</div>
+      <a href="/agent/dashboard">&#9632; Dashboard</a>
+      <a href="/agent/pickups">&#128230; My pickups</a>
+      <a href="/agent/pickup-requests" class="active">&#128276; Assigned requests</a>
+      <div class="sidebar-section-label">Account</div>
+      <a href="/agent/profile">&#9737; Profile</a>
+      <a href="/agent/change-password">&#128274; Change password</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/logout" class="btn btn-danger btn-sm btn-block" style="justify-content:flex-start;">&#8594; Sign out</a>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="page-header">
+      <div class="page-title">Assigned Requests</div>
+      <div class="page-subtitle">Pickups admin has invited you to make a price offer on</div>
+    </div>
+    <div class="content-area">
+      <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+      <div th:if="${error}"   class="alert alert-error"   th:text="${error}"></div>
+      <div th:if="${licenseRequired}" class="alert alert-warn" th:text="${licenseRequired}"></div>
+
+      <!-- ══ ADMIN INVITATIONS — needs offer ══════════════════════════════════ -->
+      <div th:unless="${#lists.isEmpty(invitations)}" style="margin-bottom:2.5rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+          <h2 style="font-family:var(--font-head);font-size:1.1rem;font-weight:700;">
+            📬 Invited — submit your price offer
+          </h2>
+          <span class="badge badge-yellow" th:text="${invitations.size()} + ' pending'"></span>
+        </div>
+        <div class="req-grid">
+          <div class="req-card invited" th:each="inv : ${invitations}">
+            <div class="invited-badge">📬 Admin invited you — send your offer</div>
+
+            <div th:if="${inv.clientEwaste.itemImagePath != null}" class="img-thumb">
+              <img th:src="@{'/uploads/ewastes/' + ${inv.clientEwaste.itemImagePath}}"
+                   th:alt="${inv.clientEwaste.ewaste.name}"
+                   onerror="this.closest('.img-thumb').style.display='none'"/>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div>
+                <div style="font-family:var(--font-head);font-weight:700;font-size:1.05rem;"
+                     th:text="${inv.clientEwaste.ewaste.name}"></div>
+                <div class="text-xs text-muted"
+                     th:text="${inv.clientEwaste.ewaste.category != null ? inv.clientEwaste.ewaste.category.name : ''}"></div>
+              </div>
+              <span class="badge badge-yellow">Invited</span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;">
+              <div><div class="text-xs text-muted">Quantity</div>
+                <div class="text-sm font-bold" th:text="${inv.clientEwaste.quantity} + ' unit(s)'"></div></div>
+              <div><div class="text-xs text-muted">Requested on</div>
+                <div class="text-xs" th:text="${#temporals.format(inv.clientEwaste.requestedAt,'dd MMM yyyy')}"></div></div>
+              <div style="grid-column:span 2;">
+                <div class="text-xs text-muted">Pickup address</div>
+                <div class="text-sm" th:text="${inv.clientEwaste.pickupAddress}"></div>
+              </div>
+              <div th:if="${inv.clientEwaste.itemDescription != null and !inv.clientEwaste.itemDescription.isEmpty()}"
+                   style="grid-column:span 2;">
+                <div class="text-xs text-muted">Client's note</div>
+                <div class="text-sm text-muted" th:text="${inv.clientEwaste.itemDescription}"></div>
+              </div>
+            </div>
+
+            <!-- Offer form -->
+            <div class="offer-form">
+              <div class="text-xs text-muted" style="font-weight:700;margin-bottom:.75rem;">Submit your price offer</div>
+              <form th:action="@{/agent/pickup-requests/offer}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <input type="hidden" name="pickupId" th:value="${inv.clientEwaste.id}"/>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.75rem;">
+                  <div class="form-group" style="margin:0;">
+                    <label class="form-label" style="font-size:.72rem;">Offered price / item (₹)</label>
+                    <input type="number" name="offeredPrice" class="form-control price-input"
+                           step="0.01" min="0" placeholder="0.00"/>
+                  </div>
+                  <div class="form-group" style="margin:0;display:flex;align-items:flex-end;">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding-bottom:10px;">
+                      <input type="checkbox" name="freeCollection" class="free-cb"
+                             onchange="this.closest('form').querySelector('.price-input').disabled=this.checked;
+                                       this.closest('form').querySelector('.price-input').style.opacity=this.checked?'0.4':'1';"
+                             style="width:16px;height:16px;accent-color:var(--green);"/>
+                      <span class="text-xs font-bold">Free collection</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="form-group" style="margin-bottom:.75rem;">
+                  <label class="form-label" style="font-size:.72rem;">Note to client (optional)</label>
+                  <textarea name="offerNote" class="form-control" rows="2"
+                            placeholder="E.g. I can collect within 24 hours…" style="resize:none;"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">📩 Send offer to client</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ ALREADY OFFERED — awaiting client decision ═════════════════════ -->
+      <div th:unless="${#lists.isEmpty(myOffered)}" style="margin-bottom:2rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+          <h2 style="font-family:var(--font-head);font-size:1.1rem;font-weight:700;">
+            💰 Offers sent — awaiting client
+          </h2>
+          <span class="badge badge-blue" th:text="${myOffered.size()} + ' pending'"></span>
+        </div>
+        <div class="req-grid">
+          <div class="req-card offered" th:each="o : ${myOffered}">
+            <div class="offered-badge">💰 Offer submitted — client deciding</div>
+
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div>
+                <div style="font-family:var(--font-head);font-weight:700;font-size:1.05rem;"
+                     th:text="${o.clientEwaste.ewaste.name}"></div>
+                <div class="text-xs text-muted" th:text="${o.clientEwaste.pickupAddress}"></div>
+              </div>
+              <span class="badge badge-blue">Offered</span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;">
+              <div><div class="text-xs text-muted">Quantity</div>
+                <div class="text-sm font-bold" th:text="${o.clientEwaste.quantity} + ' unit(s)'"></div></div>
+              <div><div class="text-xs text-muted">Your offer</div>
+                <div class="text-sm font-bold" style="color:var(--green);"
+                     th:text="${o.freeCollection ? 'Free collection' : (o.offeredPrice != null ? '₹' + o.offeredPrice + ' / item' : 'TBD')}"></div></div>
+              <div th:if="${o.remarks != null and !o.remarks.isEmpty()}" style="grid-column:span 2;">
+                <div class="text-xs text-muted">Your note</div>
+                <div class="text-sm text-muted" th:text="${o.remarks}"></div>
+              </div>
+            </div>
+
+            <div style="font-size:.82rem;color:var(--text-faint);text-align:center;padding:.5rem;
+                        background:var(--bg-2);border-radius:var(--radius);">
+              ⏳ Waiting for the client to review and accept your offer
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ EMPTY STATE ════════════════════════════════════════════════════ -->
+      <div th:if="${#lists.isEmpty(invitations) and #lists.isEmpty(myOffered)}" class="empty-box">
+        <div style="font-size:3rem;margin-bottom:.75rem;">📭</div>
+        <div style="font-family:var(--font-head);font-weight:700;font-size:1.1rem;margin-bottom:.5rem;">
+          No assignments yet
+        </div>
+        <div style="font-size:.92rem;color:var(--text-muted);max-width:360px;margin:0 auto;line-height:1.6;">
+          Admin will invite you to specific pickup requests based on your city. Check back soon or wait for a notification.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

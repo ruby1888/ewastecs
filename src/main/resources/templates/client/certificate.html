@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Recycling Certificate — E-Waste Recycling Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+  <script src="/js/loader.js" defer></script>
+  <style>
+    /* ── SCREEN ─────────────────────────────────────────────────── */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f0f2f0;
+      color: #1c1c1a;
+    }
+
+    /* Toolbar — screen only */
+    .toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 2rem;
+      background: #fff; border-bottom: 1px solid #e0dcd4;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .toolbar a { color: #5a8c6a; text-decoration: none; font-size: .875rem; }
+    .print-btn {
+      background: #3a6b4a; color: #fff; border: none;
+      padding: 10px 22px; border-radius: 10px; font-weight: 600;
+      cursor: pointer; font-size: .875rem; font-family: 'Inter', sans-serif;
+    }
+    .print-btn:hover { background: #2d5439; }
+
+    /* Certificate wrapper — centres on screen */
+    .cert-wrap {
+      display: flex; justify-content: center; align-items: flex-start;
+      padding: 3rem 1.5rem 4rem;
+    }
+
+    /* ── THE CERTIFICATE PAGE ─────────────────────────────────────
+       Strict A4-ish proportions so it prints on one page.
+       All colours are hex — no CSS variables — for print safety.   */
+    .cert {
+      background: #fff;
+      width: 100%;
+      max-width: 720px;
+      border: 1.5px solid #c8e6d0;
+      border-radius: 16px;
+      padding: 48px 56px;
+      position: relative;
+      box-shadow: 0 4px 32px rgba(0,0,0,.08);
+    }
+
+    /* corner decorations */
+    .corner {
+      position: absolute;
+      width: 44px; height: 44px;
+      border-color: #3a6b4a; border-style: solid; opacity: .3;
+    }
+    .tl { top: 14px; left: 14px; border-width: 2px 0 0 2px; border-radius: 4px 0 0 0; }
+    .tr { top: 14px; right: 14px; border-width: 2px 2px 0 0; border-radius: 0 4px 0 0; }
+    .bl { bottom: 14px; left: 14px; border-width: 0 0 2px 2px; border-radius: 0 0 0 4px; }
+    .br { bottom: 14px; right: 14px; border-width: 0 2px 2px 0; border-radius: 0 0 4px 0; }
+
+    /* header */
+    .cert-head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 2.5rem;
+    }
+    .cert-logo {
+      font-family: 'Fraunces', Georgia, serif; font-weight: 700;
+      font-size: 1.4rem; color: #3a6b4a;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .cert-logo-dot {
+      width: 10px; height: 10px; border-radius: 50%; background: #3a6b4a;
+    }
+    .cert-id {
+      font-size: .72rem; font-family: monospace; color: #6b7280;
+      background: #f3f4f6; border: 1px solid #e5e7eb;
+      padding: 4px 10px; border-radius: 6px;
+    }
+
+    /* title block */
+    .cert-title-block { text-align: center; margin-bottom: 2rem; }
+    .cert-eyebrow {
+      font-size: .7rem; text-transform: uppercase; letter-spacing: .14em;
+      color: #9ca3af; margin-bottom: .5rem;
+    }
+    .cert-main-title {
+      font-family: 'Fraunces', Georgia, serif; font-weight: 700;
+      font-size: 1.75rem; color: #1c1c1a; letter-spacing: -.02em;
+    }
+    .cert-sub { font-size: .85rem; color: #6b7280; margin-top: .4rem; }
+
+    /* divider */
+    .cert-divider {
+      height: 1px; background: linear-gradient(90deg, transparent, #c8e6d0, transparent);
+      margin: 1.5rem 0;
+    }
+
+    /* awarded to */
+    .cert-awarded-label { text-align: center; font-size: .72rem; color: #9ca3af; letter-spacing: .08em; text-transform: uppercase; }
+    .cert-recipient {
+      font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-style: italic;
+      font-size: 2rem; color: #3a6b4a; text-align: center;
+      margin: .4rem 0 1.5rem;
+    }
+
+    /* detail grid */
+    .cert-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: .75rem;
+      margin-bottom: 1.5rem;
+    }
+    .cert-cell {
+      background: #f9fafb; border: 1px solid #e5e7eb;
+      border-radius: 10px; padding: .85rem 1rem;
+    }
+    .cert-cell-label {
+      font-size: .65rem; text-transform: uppercase; letter-spacing: .08em;
+      color: #9ca3af; margin-bottom: 4px;
+    }
+    .cert-cell-value { font-weight: 600; font-size: .9rem; color: #1c1c1a; }
+
+    /* statement */
+    .cert-statement {
+      font-size: .82rem; color: #6b7280; line-height: 1.75;
+      text-align: center; margin-bottom: 1.5rem;
+    }
+
+    /* seal row */
+    .cert-seal {
+      display: flex; align-items: center; gap: .75rem;
+      background: #f0fdf4; border: 1px solid #bbf7d0;
+      border-radius: 10px; padding: .85rem 1.25rem;
+      margin-bottom: 2rem;
+    }
+    .seal-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #dcfce7; border: 1.5px solid #3a6b4a;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+    }
+    .seal-text { font-size: .8rem; color: #374151; }
+    .seal-text strong { color: #3a6b4a; }
+
+    /* footer row */
+    .cert-footer {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      border-top: 1px solid #e5e7eb; padding-top: 1.25rem;
+    }
+    .sig-line {
+      width: 130px; border-top: 1px solid #d1d5db;
+      padding-top: 6px; font-size: .68rem; color: #9ca3af; text-align: center;
+    }
+    .footer-meta { font-size: .7rem; color: #9ca3af; text-align: center; }
+
+    /* helper note on screen */
+    .screen-note {
+      text-align: center; font-size: .8rem; color: #6b7280;
+      margin-top: 1.5rem;
+    }
+
+    /* ── PRINT ──────────────────────────────────────────────────── */
+    @media print {
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+      .toolbar, .screen-note { display: none !important; }
+
+      html, body {
+        background: #fff !important;
+        margin: 0 !important; padding: 0 !important;
+      }
+
+      /* Force exactly one page */
+      @page {
+        size: A4 portrait;
+        margin: 1.2cm 1.5cm;
+      }
+
+      .cert-wrap {
+        padding: 0 !important;
+        display: block !important;
+      }
+
+      .cert {
+        max-width: 100% !important;
+        box-shadow: none !important;
+        border-color: #c8e6d0 !important;
+        padding: 36px 48px !important;
+        border-radius: 10px !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+
+      .cert-main-title { font-size: 1.5rem !important; }
+      .cert-recipient  { font-size: 1.7rem !important; }
+    }
+  </style>
+<script src="/js/loader.js" defer></script>
+</head>
+<body>
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="loader-logo"><div class="loader-logo-dot"></div> E-Waste Recycling Manager</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">Loading…</div>
+</div>
+
+
+<!-- Screen-only toolbar -->
+<div class="toolbar">
+  <a href="/client/my-certificates">← Back to certificates</a>
+  <button class="print-btn" onclick="window.print()">🖨 Print / Save PDF</button>
+</div>
+
+<div class="cert-wrap">
+  <div class="cert">
+    <!-- Corner decorations -->
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+
+    <!-- Header -->
+    <div class="cert-head">
+      <div class="cert-logo">
+        <div class="cert-logo-dot"></div>
+        E-Waste Recycling Manager
+      </div>
+      <div class="cert-id" th:text="'CERT-EW-' + ${pickup.id}">CERT-EW-001</div>
+    </div>
+
+    <!-- Title -->
+    <div class="cert-title-block">
+      <div class="cert-eyebrow">Certificate of</div>
+      <div class="cert-main-title">Responsible E-Waste Recycling</div>
+      <div class="cert-sub">This certifies responsible disposal of electronic waste through E-Waste Recycling Manager.</div>
+    </div>
+
+    <div class="cert-divider"></div>
+
+    <!-- Recipient -->
+    <div class="cert-awarded-label">Awarded to</div>
+    <div class="cert-recipient" th:text="${client.name}">Client Name</div>
+
+    <!-- Detail grid — no item photo -->
+    <div class="cert-grid">
+      <div class="cert-cell">
+        <div class="cert-cell-label">Item recycled</div>
+        <div class="cert-cell-value" th:text="${pickup.ewaste.name}">Item</div>
+      </div>
+      <div class="cert-cell">
+        <div class="cert-cell-label">Quantity</div>
+        <div class="cert-cell-value" th:text="${pickup.quantity} + ' unit(s)'">0</div>
+      </div>
+      <div class="cert-cell">
+        <div class="cert-cell-label">Category</div>
+        <div class="cert-cell-value"
+             th:text="${pickup.ewaste.category != null ? pickup.ewaste.category.name : 'General'}">Cat</div>
+      </div>
+      <div class="cert-cell">
+        <div class="cert-cell-label">Collection date</div>
+        <div class="cert-cell-value"
+             th:text="${#temporals.format(pickup.requestedAt,'dd MMMM yyyy')}">Date</div>
+      </div>
+      <div class="cert-cell" style="grid-column:span 2;">
+        <div class="cert-cell-label">Pickup address</div>
+        <div class="cert-cell-value" th:text="${pickup.pickupAddress}">Address</div>
+      </div>
+      <div class="cert-cell" th:if="${assignment != null}" style="grid-column:span 2;">
+        <div class="cert-cell-label">Collected by</div>
+        <div class="cert-cell-value" th:text="${assignment.agent.name}">Agent</div>
+      </div>
+    </div>
+
+    <!-- Statement -->
+    <div class="cert-statement">
+      By recycling electronic waste through our certified platform, you have contributed to
+      reducing hazardous landfill waste, conserving natural resources, and supporting a
+      cleaner, greener environment. This certificate verifies your commitment to responsible disposal.
+    </div>
+
+    <!-- Seal -->
+    <div class="cert-seal">
+      <div class="seal-icon">♻️</div>
+      <div class="seal-text">
+        <strong>Certified Collection Verified</strong><br>
+        Collected by a verified E-Waste Recycling Manager agent · Responsibly processed
+      </div>
+      <div class="seal-icon" style="margin-left:auto;">✅</div>
+    </div>
+
+    <!-- Footer -->
+    <div class="cert-footer">
+      <div>
+        <div class="sig-line">Authorised Signatory</div>
+        <div style="font-size:.68rem;color:#9ca3af;margin-top:4px;text-align:center;">E-Waste Recycling Manager Operations</div>
+      </div>
+      <div class="footer-meta">
+        <div>Issue date</div>
+        <div style="font-weight:600;color:#374151;margin-top:2px;"
+             th:text="${#temporals.format(pickup.requestedAt,'dd MMM yyyy')}"></div>
+      </div>
+      <div>
+        <div style="font-size:.65rem;color:#9ca3af;margin-bottom:4px;text-align:right;">Certificate ID</div>
+        <div style="font-size:.78rem;color:#374151;font-family:monospace;font-weight:600;"
+             th:text="'EW-' + ${pickup.id}">EW-001</div>
+      </div>
+    </div>
+  </div><!-- /.cert -->
+
+  <div class="screen-note">
+    Use <strong>Print → Save as PDF</strong> to download. Certificate stays on one page.
+  </div>
+</div>
+
+
+</body>
+</html>

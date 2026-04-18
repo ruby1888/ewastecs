@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>About — E-Waste Recycling Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/ewaste.css}"/>
+  <script src="/js/loader.js" defer></script>
+  <style>
+    .reveal{opacity:0;transform:translateY(22px);
+      transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1);}
+    .reveal.visible{opacity:1;transform:none;}
+    .d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}
+
+    /* About hero */
+    .about-hero{
+      padding:6rem 3rem 4rem;max-width:1280px;margin:0 auto;
+      display:grid;grid-template-columns:1.3fr 1fr;gap:5rem;align-items:center;
+    }
+    .about-hero h1{
+      font-family:var(--font-head);font-weight:800;
+      font-size:clamp(2.5rem,4.5vw,3.8rem);
+      line-height:1.08;letter-spacing:-.03em;margin-bottom:1.5rem;
+    }
+    .about-hero h1 em{font-style:italic;color:var(--green);font-family:var(--font-serif);}
+    .about-hero p{font-size:1.05rem;color:var(--text-muted);line-height:1.75;margin-bottom:1rem;}
+    .callout-card{
+      background:var(--bg-card);border:1.5px solid var(--border);
+      border-radius:var(--radius-lg);padding:1.75rem;
+      box-shadow:var(--shadow-sm);margin-bottom:1rem;
+    }
+    .callout-num{
+      font-family:var(--font-head);font-size:3rem;font-weight:800;
+      color:var(--green);line-height:1;margin-bottom:.4rem;
+    }
+    .callout-label{font-size:.9rem;color:var(--text-muted);line-height:1.5;}
+
+    /* Dark problem band */
+    .problem-band{background:var(--text);color:rgba(255,255,255,.85);}
+    .problem-inner{
+      max-width:1280px;margin:0 auto;padding:5rem 3rem;
+      display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:start;
+    }
+    .problem-inner h2{font-family:var(--font-head);font-weight:800;font-size:clamp(1.8rem,3vw,2.5rem);
+      line-height:1.12;letter-spacing:-.02em;margin-bottom:1rem;color:#fff;}
+    .problem-inner p{font-size:1rem;color:rgba(255,255,255,.65);line-height:1.75;margin-bottom:.75rem;}
+    .fact-card{
+      border-left:3px solid var(--green);background:rgba(255,255,255,.06);
+      border-radius:var(--radius);padding:1.1rem 1.25rem;margin-bottom:.85rem;
+    }
+    .fact-num{font-family:var(--font-head);font-size:1.6rem;font-weight:800;color:var(--green-mid);line-height:1;margin-bottom:.25rem;}
+    .fact-text{font-size:.88rem;color:rgba(255,255,255,.65);line-height:1.55;}
+    .fact-text strong{color:#fff;display:block;margin-bottom:2px;}
+
+    /* Mission grid */
+    .mission-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:2.5rem;}
+
+    /* Platform portals */
+    .portal-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:2.5rem;}
+    .portal-badge{
+      display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.08em;
+      text-transform:uppercase;padding:3px 10px;border-radius:6px;margin-bottom:.85rem;
+    }
+    .pb-client{background:var(--green-light);color:var(--green);}
+    .pb-agent {background:#fef3e2;color:#b45309;}
+    .pb-admin {background:#fef2f2;color:#b91c1c;}
+    .portal-title{font-family:var(--font-head);font-weight:700;font-size:1.05rem;margin-bottom:.75rem;}
+    .portal-features{display:flex;flex-direction:column;gap:.4rem;}
+    .portal-features li{font-size:.88rem;color:var(--text-muted);display:flex;gap:8px;}
+    .portal-features li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0;}
+
+    /* Green values band */
+    .values-band{background:var(--green);}
+    .values-inner{max-width:1280px;margin:0 auto;padding:5rem 3rem;}
+    .values-band h2{font-family:var(--font-head);font-weight:800;font-size:clamp(1.8rem,3vw,2.5rem);color:#fff;margin-bottom:.75rem;}
+    .values-band > .values-inner > p{font-size:1rem;color:rgba(255,255,255,.72);max-width:560px;line-height:1.75;margin-bottom:2.5rem;}
+    .values-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
+    .val-card{
+      background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+      border-radius:var(--radius-lg);padding:1.75rem 1.5rem;
+    }
+    .val-icon{font-size:1.8rem;margin-bottom:1rem;}
+    .val-title{font-family:var(--font-head);font-weight:700;font-size:1rem;color:#fff;margin-bottom:.35rem;}
+    .val-desc{font-size:.85rem;color:rgba(255,255,255,.62);line-height:1.55;}
+
+    @media(max-width:900px){
+      .about-hero,.problem-inner{grid-template-columns:1fr;gap:2.5rem;}
+      .mission-grid{grid-template-columns:1fr 1fr;}
+      .portal-grid{grid-template-columns:1fr;}
+      .values-grid{grid-template-columns:1fr 1fr;}
+    }
+    @media(max-width:600px){
+      .about-hero,.problem-inner,.values-inner{padding-left:1.5rem;padding-right:1.5rem;}
+      .mission-grid,.values-grid{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="loader-logo"><div class="loader-logo-dot"></div> E-Waste Recycling Manager</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">Loading…</div>
+</div>
+
+<!-- NAVBAR — same class structure as contact.html -->
+<nav class="navbar" id="mainNav">
+  <a href="/" class="navbar-brand">
+    <div class="brand-dot"></div>
+    E-Waste Recycling Manager
+  </a>
+  <div class="navbar-links">
+    <a href="/">Home</a>
+    <a href="/about" class="active">About</a>
+    <a href="/contact">Contact</a>
+  </div>
+  <div class="navbar-actions">
+    <sec:authorize access="isAuthenticated()">
+      <a sec:authorize="hasRole('CLIENT')" href="/client/dashboard" class="btn btn-ghost btn-sm">Dashboard</a>
+      <a sec:authorize="hasRole('AGENT')"  href="/agent/dashboard"  class="btn btn-ghost btn-sm">Dashboard</a>
+      <a sec:authorize="hasRole('ADMIN')"  href="/admin/dashboard"  class="btn btn-ghost btn-sm">Admin</a>
+      <a href="/logout" class="btn btn-outline btn-sm">Sign out</a>
+    </sec:authorize>
+    <sec:authorize access="!isAuthenticated()">
+      <a href="/client/login"    class="btn btn-ghost btn-sm">Sign in</a>
+      <a href="/client/register" class="btn btn-primary btn-sm">Get started</a>
+    </sec:authorize>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div style="background:var(--bg);">
+  <div class="about-hero">
+    <div>
+      <div class="section-label reveal">Our story</div>
+      <h1 class="reveal d1">E-waste is a crisis.<br><em>We built a solution.</em></h1>
+      <p class="reveal d2">
+        E-Waste Recycling Manager started with a simple observation: people have old electronics,
+        they know they shouldn't bin them, but there's no easy way to dispose of them properly.
+      </p>
+      <p class="reveal d3">
+        So we built a platform that makes responsible recycling as simple as requesting a cab.
+        No drop-off trips, no fees — schedule a pickup and we come to you.
+      </p>
+    </div>
+    <div class="reveal d2">
+      <div class="callout-card">
+        <div class="callout-num">57.4M</div>
+        <div class="callout-label">Metric tonnes of e-waste generated globally every year — and rising.</div>
+      </div>
+      <div class="callout-card">
+        <div class="callout-num">&lt;20%</div>
+        <div class="callout-label">Of global e-waste is formally collected and recycled. The rest ends up in landfills.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- THE PROBLEM -->
+<div class="problem-band">
+  <div class="problem-inner">
+    <div>
+      <div class="section-label reveal" style="color:rgba(255,255,255,.4);">The problem</div>
+      <h2 class="reveal d1">E-waste is the fastest-growing waste stream on Earth</h2>
+      <p class="reveal d2">Electronic devices contain lead, mercury, cadmium, and other hazardous materials. When dumped in landfills, they contaminate soil and groundwater for decades.</p>
+      <p class="reveal d3">At the same time, they contain gold, silver, copper, and rare earth metals — worth over $57 billion annually — that mostly go to waste.</p>
+    </div>
+    <div>
+      <div class="fact-card reveal"><div class="fact-num">70%</div><div class="fact-text"><strong>Of toxic landfill waste</strong> comes from discarded electronics, despite e-waste being only 2% of total waste volume.</div></div>
+      <div class="fact-card reveal d1"><div class="fact-num">1.8kg</div><div class="fact-text"><strong>CO₂ saved per laptop</strong> recycled responsibly vs. raw material extraction for a new device.</div></div>
+      <div class="fact-card reveal d2"><div class="fact-num">50+</div><div class="fact-text"><strong>Chemicals in a smartphone</strong> — many toxic, needing careful handling during disposal.</div></div>
+      <div class="fact-card reveal d3"><div class="fact-num">India</div><div class="fact-text"><strong>3rd largest e-waste producer</strong> globally, generating 3.2+ million metric tonnes annually.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MISSION -->
+<div style="background:var(--bg-2);">
+  <div class="section">
+    <div class="section-label reveal">Our mission</div>
+    <h2 class="section-title reveal d1" style="max-width:680px;">Make responsible e-waste disposal accessible to every household and business</h2>
+    <p class="section-desc reveal d2">
+      The barrier to recycling should be zero. If it's easier to do the right thing than the wrong thing, people will choose right. That's the premise this platform is built on.
+    </p>
+    <div class="mission-grid">
+      <div class="feature-card reveal"><div class="feature-icon">🌱</div><div class="feature-title">Environmental Impact</div><div class="feature-desc">Every device we collect is kept out of landfills and processed through certified channels that recover materials and neutralise toxins.</div></div>
+      <div class="feature-card reveal d1"><div class="feature-icon">🤝</div><div class="feature-title">Community Livelihoods</div><div class="feature-desc">By building a network of local agents, we create earning opportunities for certified collectors in every city we operate in.</div></div>
+      <div class="feature-card reveal d2"><div class="feature-icon">🔬</div><div class="feature-title">Data &amp; Transparency</div><div class="feature-desc">Every collection is tracked and documented. Clients receive certificates. Admins have full visibility. Nothing disappears into an unknown chain.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- PLATFORM -->
+<div style="background:var(--bg);">
+  <div class="section">
+    <div class="section-label reveal">The platform</div>
+    <h2 class="section-title reveal d1">Three portals. One system.</h2>
+    <p class="section-desc reveal d2">Designed for three distinct users — clients with e-waste, agents who collect it, and admins who keep everything running smoothly.</p>
+    <div class="portal-grid">
+      <div class="card reveal">
+        <div class="card-body">
+          <span class="portal-badge pb-client">Client Portal</span>
+          <div class="portal-title">For individuals &amp; businesses with e-waste</div>
+          <ul class="portal-features">
+            <li>Register for free with your email</li>
+            <li>Submit pickup requests with photos</li>
+            <li>Review and accept agent price offers</li>
+            <li>Track your pickup in real time</li>
+            <li>Download your recycling certificate</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card reveal d1">
+        <div class="card-body">
+          <span class="portal-badge pb-agent">Agent Portal</span>
+          <div class="portal-title">For certified collection agents</div>
+          <ul class="portal-features">
+            <li>Apply and get verified by admin</li>
+            <li>Receive admin invitations for nearby pickups</li>
+            <li>Submit competitive price offers</li>
+            <li>Manage your pickup schedule</li>
+            <li>Mark collections as completed</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card reveal d2" style="grid-column:1/-1;">
+        <div class="card-body">
+          <span class="portal-badge pb-admin">Admin Portal</span>
+          <div class="portal-title">For E-Waste Recycling Manager administrators</div>
+          <ul class="portal-features" style="columns:2;gap:2rem;">
+            <li>Manage all clients and agents</li>
+            <li>Approve or revoke agent accounts</li>
+            <li>Invite agents by locality to make offers</li>
+            <li>View all pickup requests and statuses</li>
+            <li>Manage e-waste categories, cities &amp; states</li>
+            <li>Respond to support messages</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VALUES -->
+<div class="values-band">
+  <div class="values-inner">
+    <div class="section-label reveal" style="color:rgba(255,255,255,.4);">What we stand for</div>
+    <h2 class="reveal d1">Our values</h2>
+    <p class="reveal d2">These shape every feature we build and every decision we make.</p>
+    <div class="values-grid">
+      <div class="val-card reveal"><div class="val-icon">♻️</div><div class="val-title">Sustainability first</div><div class="val-desc">Environmental responsibility is not a feature — it's the reason we exist.</div></div>
+      <div class="val-card reveal d1"><div class="val-icon">🔓</div><div class="val-title">Zero barrier access</div><div class="val-desc">Recycling should be free and easy. We don't charge clients, we come to you.</div></div>
+      <div class="val-card reveal d2"><div class="val-icon">🔍</div><div class="val-title">Full transparency</div><div class="val-desc">Every pickup is documented. Nothing goes into a black box.</div></div>
+      <div class="val-card reveal d3"><div class="val-icon">🛡️</div><div class="val-title">Trust by design</div><div class="val-desc">Agents are verified. Data is secured. Your certificate is meaningful.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div style="background:var(--bg-2);">
+  <div style="max-width:720px;margin:0 auto;padding:6rem 3rem;text-align:center;">
+    <div class="section-label reveal" style="justify-content:center;"><span style="display:none"></span>Join us</div>
+    <h2 style="font-family:var(--font-head);font-weight:800;font-size:clamp(2rem,4vw,3rem);line-height:1.08;letter-spacing:-.03em;margin-bottom:1.25rem;" class="reveal d1">
+      Be part of the solution,<br><span style="font-style:italic;color:var(--green);font-family:var(--font-serif);">not the problem.</span>
+    </h2>
+    <p style="font-size:1.05rem;color:var(--text-muted);margin-bottom:2.5rem;line-height:1.75;" class="reveal d2">
+      Whether you have one old phone or an office full of retired computers —
+      we're ready to collect. Free, tracked, and it makes a real difference.
+    </p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;" class="reveal d3">
+      <a href="/client/register" class="btn btn-primary btn-lg">Schedule a free pickup</a>
+      <a href="/contact" class="btn btn-outline btn-lg">Get in touch</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand-name">E-Waste Recycling Manager</div>
+      <p class="footer-desc">Certified platform for responsible e-waste collection and recycling.</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Platform</div>
+      <a href="/">Home</a><a href="/about">About</a><a href="/contact">Contact</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Account</div>
+      <a href="/client/login">Client login</a>
+      <a href="/agent/login">Agent login</a>
+      <a href="/client/register">Register</a>
+    </div>
+    <div class="footer-col"></div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 E-Waste Recycling Manager</span>
+    <span>support@ewrm.in</span>
+  </div>
+</footer>
+
+<script>
+var nav = document.getElementById('mainNav');
+window.addEventListener('scroll', function() {
+  if (nav) nav.classList.toggle('navbar-scrolled', window.scrollY > 10);
+}, { passive: true });
+document.addEventListener('DOMContentLoaded', function() {
+  var io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
+  document.querySelectorAll('.reveal').forEach(function(el) { io.observe(el); });
+  setTimeout(function() {
+    document.querySelectorAll('.reveal:not(.visible)').forEach(function(el) {
+      var r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight) el.classList.add('visible');
+    });
+  }, 150);
+});
+</script>
+</body>
+</html>
